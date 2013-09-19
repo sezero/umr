@@ -5,7 +5,7 @@
 
 
 // version,  class_name, order
-upkg_export_hdr export_desc[] = {
+const upkg_export_hdr export_desc[] = {
 	{61, "Music",   "FjFnFd"},
 	{61, "Sound",   "FjFnFd"},
 	{61, "Palette", ""},
@@ -33,7 +33,7 @@ upkg_export_hdr export_desc[] = {
 	{0, "", ""}		// last entry must have version == 0
 };
 
-upkg_object_hdr object_desc[] = {
+const upkg_object_hdr object_desc[] = {
 	{"s3m", "SCRM", 44, "ScreamTracker 3"}
 	,
 	{"it", "IMPM", 0, "Impluse Tracker"}

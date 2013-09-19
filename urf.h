@@ -1,9 +1,8 @@
 #ifndef _URF_H
 #define _URF_H
 
-#ifndef _UMR_H
+#include <stdint.h>
 #include "umr.h"
-#endif
 
 
 #define UPKG_MAX_NAME_SIZE	64
@@ -38,9 +37,10 @@ enum upkg_flags {
     RF_Intrinsic	= 0x04000000
 };
 
+#pragma pack(1)
 struct unreal_pkg_hdr {
-	signed long tag,	// hdr tag, should == UPKG_HDR_TAG
-	 file_version,		// should be 61 for unreal.  > for UT
+	uint32_t tag;	// hdr tag, should == UPKG_HDR_TAG
+	int32_t file_version,	// should be 61 for unreal.  > for UT
 	 pkg_flags,		// bitflags..  we don't need them
 	 name_count,		// number of names in name table (>= 0)
 	 name_offset,		// offset to name table          (>= 0)
@@ -51,6 +51,7 @@ struct unreal_pkg_hdr {
 	 heritage_count,	// heritage table (has GUID's)   (>= 1)
 	 heritage_offset;	//                               (>= 0)
 };
+#pragma pack()
 
 
 /* indices have 2 types.  type 1 is harder, so I'll describe type 2 first. =)
@@ -65,7 +66,7 @@ struct unreal_pkg_hdr {
   type 1 is used for dependency/inheritancy info
 */
 struct unreal_pkg_export_tbl {
-	signed long class_index,	// index, type 1
+	int32_t class_index,	// index, type 1
 	 package_index,		// index, type 1
 	 super_index,		// index, type 1
 	 object_name,		// index, type 2
@@ -80,7 +81,7 @@ struct unreal_pkg_export_tbl {
 };
 
 struct unreal_pkg_import_tbl {
-	signed long class_package,	// index, type 2
+	int32_t class_package,	// index, type 2
 	 class_name,		// index, type 2
 	 package_index,		// index, type 1
 	 object_name;		// index, type 2
@@ -88,11 +89,11 @@ struct unreal_pkg_import_tbl {
 
 struct unreal_pkg_name_tbl {
 	char name[UPKG_MAX_NAME_SIZE];	// a name
-	signed long flags;	// flags for the name
+	int32_t flags;	// flags for the name
 };
 
 struct unreal_pkg_export_hdr {
-	signed long version;	// version of pkg header this supports
+	int32_t version;	// version of pkg header this supports
 	char class_name[UPKG_MAX_NAME_SIZE];	// unreal class
 	char order[UPKG_MAX_ORDERS * 10];	// order of the header
 };
@@ -112,7 +113,7 @@ typedef struct unreal_pkg_export_hdr upkg_export_hdr;
 typedef struct unreal_pkg_object_hdr upkg_object_hdr;
 
 
-extern upkg_export_hdr export_desc[];
-extern upkg_object_hdr object_desc[];
+extern const upkg_export_hdr export_desc[];
+extern const upkg_object_hdr object_desc[];
 
 #endif				// _URF_H

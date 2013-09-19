@@ -6,23 +6,22 @@
 #include "urf.h"
 
 
+static upkg_hdr *hdr;			// read the urf.h for these 4...
+static upkg_exports *exports;
+static upkg_imports *imports;
+static upkg_names *names;
 
-upkg_hdr *hdr;			// read the urf.h for these 4...
-upkg_exports *exports;
-upkg_imports *imports;
-upkg_names *names;
+static FILE *file;			// we store the file pointer globally around here
 
-FILE *file;			// we store the file pointer globally around here
+static int data_size,			// a way to standardize some freaky parts of the format
+	   pkg_opened = 0;		// sanity check
+static int indent_level;
 
-int data_size,			// a way to standardize some freaky parts of the format
- pkg_opened = 0;		// sanity check
-int indent_level;
-
-char header[4096],		// we load the header into this buffer
- buf[256];			// temp buf for get_string()
+static char header[4096],		// we load the header into this buffer
+	    buf[256];			// temp buf for get_string()
 
 
-char *print_flags(signed int flags) {
+static char *print_flags(signed int flags) {
     memset((void *)buf, 0, 256);
 
     if (flags & RF_Transactional)
@@ -55,18 +54,18 @@ char *print_flags(signed int flags) {
     return buf;
 }
 
-void print_pkg_hdr(void) {
-    printf("tag             = 0x%08lx\n"
-	   "file_version    = %ld\n"
+static void print_pkg_hdr(void) {
+    printf("tag             = 0x%08x\n"
+	   "file_version    = %d\n"
 	   "pkg_flags       = %s\n"
-	   "name_count      = %ld\n"
-	   "name_offset     = 0x%08lx\n"
-	   "export_count    = %ld\n"
-	   "export_offset   = 0x%08lx\n"
-	   "import_count    = %ld\n"
-	   "import_offset   = 0x%08lx\n"
-	   "heritage_count  = %ld\n"
-	   "heritage_offset = 0x%08lx\n",
+	   "name_count      = %d\n"
+	   "name_offset     = 0x%08x\n"
+	   "export_count    = %d\n"
+	   "export_offset   = 0x%08x\n"
+	   "import_count    = %d\n"
+	   "import_offset   = 0x%08x\n"
+	   "heritage_count  = %d\n"
+	   "heritage_offset = 0x%08x\n",
 	   hdr->tag,
 	   hdr->file_version,
 	   print_flags(hdr->pkg_flags),
@@ -81,18 +80,18 @@ void print_pkg_hdr(void) {
     );
 }
 
-void print_name(int i) {
+static void print_name(int i) {
 	printf("%d: %s\t%s", i, names[i].name, print_flags(names[i].flags));
 }
 
-void indent(int level) {
+static void indent(int level) {
     int i;
     
     for (i = -1; i < level; i++)
 	printf("  ");
 }
 
-void print_export(int idx) {
+static void print_export(int idx) {
     int level, tmp;
     
     level = indent_level++;
@@ -101,13 +100,13 @@ void print_export(int idx) {
     printf("EXPORT #%d\n", idx);
 
     indent(level);
-    printf("class_index   = %ld\n", exports[idx].class_index);
+    printf("class_index   = %d\n",  exports[idx].class_index);
     
     indent(level);
-    printf("package_index = %ld\n", exports[idx].package_index);
+    printf("package_index = %d\n",  exports[idx].package_index);
 
     indent(level);
-    printf("super_index   = %ld\n", exports[idx].super_index);
+    printf("super_index   = %d\n",  exports[idx].super_index);
 
     indent(level);
     tmp = exports[idx].object_name;
@@ -120,10 +119,10 @@ void print_export(int idx) {
     printf("object_flags  = %s\n", print_flags(exports[idx].object_flags));
 
     indent(level);
-    printf("serial_size   = %ld\n", exports[idx].serial_size);
+    printf("serial_size   = %d\n",  exports[idx].serial_size);
 
     indent(level);
-    printf("serial_offset = 0x%08lx\n", exports[idx].serial_offset);
+    printf("serial_offset = 0x%08x\n",  exports[idx].serial_offset);
 
     indent(level);
     printf("class_name    = %s\n", names[exports[idx].class_name].name);
@@ -139,13 +138,13 @@ void print_export(int idx) {
     printf("type_name     = %s\n", names[tmp].name);
 
     indent(level);
-    printf("object_size   = %ld\n", exports[idx].object_size);
+    printf("object_size   = %d\n",  exports[idx].object_size);
 
     indent(level);
-    printf("object_offset = 0x%08lx\n", exports[idx].object_offset);
+    printf("object_offset = 0x%08x\n",  exports[idx].object_offset);
 }
 
-void print_import(int idx) {
+static void print_import(int idx) {
     int level;
     
     level = indent_level++;
@@ -160,16 +159,16 @@ void print_import(int idx) {
     printf("class_name    = %s\n", names[imports[idx].class_name].name);
     
     indent(level);
-    printf("package_index = %ld\n", imports[idx].package_index);
+    printf("package_index = %d\n",  imports[idx].package_index);
     
     indent(level);
     printf("object_name   = %s\n", names[imports[idx].object_name].name);
 }
 
 // this function decodes the encoded indices in the upkg files
-signed long get_fci(char *in)
+static int32_t get_fci(char *in)
 {
-	signed long a;
+	int32_t a;
 	int size;
 
 	a = 0;
@@ -205,25 +204,30 @@ signed long get_fci(char *in)
 	return a;
 }
 
-signed long get_s32(void *addr)
+// read Little Endian data in an endian-neutral way
+#define READ_INT16(b) ((b)[0] | ((b)[1] << 8))
+#define READ_INT32(b) ((b)[0] | ((b)[1] << 8) | ((b)[2] << 16) | ((b)[3] << 24))
+static int32_t get_s32(void *addr)
 {
-	data_size = sizeof(signed long);
-	return *(signed long *) addr;
+	unsigned char *p = (unsigned char *)addr;
+	data_size = 4;
+	return (int32_t)READ_INT32(p);
 }
 
-signed long get_s16(void *addr)
+static int32_t get_s16(void *addr)
 {
-	data_size = sizeof(signed short);
-	return *(signed short *) addr;
+	unsigned char *p = (unsigned char *)addr;
+	data_size = 2;
+	return (int16_t)READ_INT16(p);
 }
 
-signed long get_s8(void *addr)
+static int32_t get_s8(void *addr)
 {
 	data_size = sizeof(signed char);
 	return *(signed char *) addr;
 }
 
-char *get_string(char *addr, int count)
+static char *get_string(char *addr, int count)
 {
 	if (count > UPKG_MAX_NAME_SIZE || count == UPKG_NAME_NOCOUNT)
 		count = UPKG_MAX_NAME_SIZE;
@@ -235,7 +239,7 @@ char *get_string(char *addr, int count)
 	return buf;
 }
 
-signed int export_index(signed int i)
+static int export_index(int i)
 {
 	if (i > 0) {
 		return i - 1;
@@ -244,7 +248,7 @@ signed int export_index(signed int i)
 	return -1;
 }
 
-signed int import_index(signed int i)
+static int import_index(int i)
 {
 	if (i < 0) {
 		return -i - 1;
@@ -254,7 +258,7 @@ signed int import_index(signed int i)
 }
 
 // idx == exports[idx], c_idx == index to the next element from idx
-int set_classname(int idx, int c_idx) {
+static int set_classname(int idx, int c_idx) {
     int i, next;
     
     i = c_idx;
@@ -286,7 +290,7 @@ int set_classname(int idx, int c_idx) {
     return c_idx;
 }
 
-int set_pkgname(int idx, int c_idx) {
+static int set_pkgname(int idx, int c_idx) {
     int i, next;
     
     i = c_idx;
@@ -320,11 +324,18 @@ int set_pkgname(int idx, int c_idx) {
 }
 
 // load in the header, AWA allocating the needed memory for the tables
-int load_upkg(void)
+static int load_upkg(void)
 {
-	int index, i;
+	unsigned char *p;
+	uint32_t *swp;
+	int i;
 
-	index = 0;
+	// byte swap the header (all members are 32 bit LE values)
+	p = (unsigned char *) header;
+	swp = (uint32_t *) header;
+	for (i = 0; i < (int)sizeof(upkg_hdr)/4; i++, p += 4) {
+		swp[i] = READ_INT32(p);
+	}
 
 	hdr = (upkg_hdr *) header;
 
@@ -341,24 +352,25 @@ int load_upkg(void)
 		return -1;
 
 	names =
-	    (upkg_names *) malloc(sizeof(upkg_names) * (hdr->name_count + 1));
+	    (upkg_names *) calloc((hdr->name_count + 1), sizeof(upkg_names));
 	if (names == NULL)
 		return -1;
 
 	exports =
-	    (upkg_exports *) malloc(sizeof(upkg_exports) *
-				    hdr->export_count);
+	    (upkg_exports *) calloc(hdr->export_count, sizeof(upkg_exports));
 	if (exports == NULL) {
 		free(names);
+		names = NULL;
 		return -1;
 	}
 
 	imports =
-	    (upkg_imports *) malloc(sizeof(upkg_imports) *
-				    hdr->import_count);
+	    (upkg_imports *) calloc(hdr->import_count, sizeof(upkg_imports));
 	if (imports == NULL) {
 		free(exports);
 		free(names);
+		exports = NULL;
+		names = NULL;
 		return -1;
 	}
 	
@@ -368,7 +380,7 @@ int load_upkg(void)
 }
 
 // load the name table
-void get_names(void)
+static void get_names(void)
 {
 	int i, index;
 
@@ -396,13 +408,11 @@ void get_names(void)
 // hdr->name_count + 1 names total, this one's last
 	strncpy(names[i].name, "(NULL)", UPKG_MAX_NAME_SIZE);
 	names[i].flags = 0;
-	
-	print_name(i);
 	printf("\n");
 }
 
 // load the export table (which is at the end of the file... go figure)
-void get_exports_cpnames(int idx) {
+static void get_exports_cpnames(int idx) {
     int x;
     
     if (idx < 0 || idx >= hdr->export_count)
@@ -420,7 +430,7 @@ void get_exports_cpnames(int idx) {
     set_pkgname(idx, x);
 }
 
-void get_exports(void)
+static void get_exports(void)
 {
 	int i, index;
 	char readbuf[1024];
@@ -463,7 +473,7 @@ void get_exports(void)
 }
 
 // load the import table (notice a trend?).  same story as get_exports()
-void get_imports(void)
+static void get_imports(void)
 {
 	int i, index;
 	char readbuf[1024];
@@ -490,15 +500,15 @@ void get_imports(void)
 }	
 
 // load the type_names
-void get_type(char *buf, int e, int d)
+static void get_type(char *buf, int e, int d)
 {
 	int i, index;
-	signed long tmp;
-	char *chtmp;
+	int32_t tmp = 0;// avoid uninitialized warning
+	//char *chtmp;// currently unused result
 
 	index = 0;
 
-	for (i = 0; i < strlen(export_desc[d].order); i++) {
+	for (i = 0; i < (int) strlen(export_desc[d].order); i++) {
 		switch (export_desc[d].order[i]) {
 		case UPKG_DATA_FCI:
 			tmp = get_fci(&buf[index]);
@@ -517,13 +527,15 @@ void get_type(char *buf, int e, int d)
 			index += data_size;
 			break;
 		case UPKG_DATA_ASCIC:
-			chtmp =
+			//chtmp =
 			    get_string(&buf[index + 1],
-				       get_s8(&buf[index++]));
+				       get_s8(&buf[index]));
+			index++;
 			index += data_size;
 			break;
 		case UPKG_DATA_ASCIZ:
-			chtmp = get_string(&buf[index], UPKG_NAME_NOCOUNT);
+			//chtmp =
+			    get_string(&buf[index], UPKG_NAME_NOCOUNT);
 			index += data_size;
 			break;
 		case UPKG_OBJ_JUNK:	// do nothing!!!
@@ -548,7 +560,7 @@ void get_type(char *buf, int e, int d)
 	exports[e].object_offset = exports[e].serial_offset + index;
 }
 
-int get_types_isgood(int idx)
+static int get_types_isgood(int idx)
 {
 	int i;
 
@@ -566,10 +578,10 @@ int get_types_isgood(int idx)
 	return -1;
 }
 
-void check_type(int e, int d)
+static void check_type(int e, int d)
 {
-	int i;
-	char readbuf[101], s, l;
+	int i, s, l;
+	char readbuf[101];
 
 	fseek(file, exports[e].object_offset, SEEK_SET);
 
@@ -592,8 +604,7 @@ void check_type(int e, int d)
 	exports[e].type_name = -1;
 }
 
-
-void get_types(void)
+static void get_types(void)
 {
 	int i, j;
 	char readbuf[UPKG_MAX_ORDERS * 4];
@@ -616,9 +627,8 @@ void get_types(void)
 
 //**************  GLOBALS
 
-
 // open that puppy!!!  gets the file opened and the data structs read for use
-int upkg_open(char *filename)
+int upkg_open(const char *filename)
 {
 	if (pkg_opened)		// is there a pkg opened already?
 		return -4;	// if so, don't try to open another one!
@@ -657,7 +667,10 @@ void upkg_close(void)
 	free(imports);
 	free(exports);
 	free(names);
-	hdr = (upkg_hdr *) 0;
+	imports = NULL;
+	exports = NULL;
+	names = NULL;
+	hdr = NULL;
 
 	fclose(file);
 
@@ -673,8 +686,7 @@ signed int upkg_ocount(void)
 	return hdr->export_count;
 }
 
-
-char *upkg_oname(signed int idx)
+char *upkg_oname(int idx)
 {
 	idx = export_index(idx);
 	if (idx == -1 || pkg_opened == 0)
@@ -683,7 +695,7 @@ char *upkg_oname(signed int idx)
 	return names[exports[idx].object_name].name;
 }
 
-char *upkg_oclassname(signed int idx)
+char *upkg_oclassname(int idx)
 {
 	idx = export_index(idx);
 	if (idx == -1 || pkg_opened == 0)
@@ -692,7 +704,7 @@ char *upkg_oclassname(signed int idx)
 	return names[exports[idx].class_name].name;
 }
 
-char *upkg_opackagename(signed int idx)
+char *upkg_opackagename(int idx)
 {
 	idx = export_index(idx);
 	if (idx == -1 || pkg_opened == 0)
@@ -701,7 +713,7 @@ char *upkg_opackagename(signed int idx)
 	return names[exports[idx].package_name].name;
 }
 
-char *upkg_otype(signed int idx)
+char *upkg_otype(int idx)
 {
 	idx = export_index(idx);
 	if (idx == -1 || pkg_opened == 0)
@@ -713,7 +725,7 @@ char *upkg_otype(signed int idx)
 	return names[exports[idx].type_name].name;
 }
 
-signed int upkg_export_size(signed int idx)
+int32_t upkg_export_size(int idx)
 {
 	idx = export_index(idx);
 	if (idx == -1 || pkg_opened == 0)
@@ -722,7 +734,7 @@ signed int upkg_export_size(signed int idx)
 	return exports[idx].serial_size;
 }
 
-signed int upkg_object_size(signed int idx)
+int32_t upkg_object_size(int idx)
 {
 	idx = export_index(idx);
 	if (idx == -1 || pkg_opened == 0)
@@ -731,7 +743,7 @@ signed int upkg_object_size(signed int idx)
 	return exports[idx].object_size;
 }
 
-signed int upkg_export_offset(signed int idx)
+int32_t upkg_export_offset(int idx)
 {
 	idx = export_index(idx);
 	if (idx == -1 || pkg_opened == 0)
@@ -740,7 +752,7 @@ signed int upkg_export_offset(signed int idx)
 	return exports[idx].serial_offset;
 }
 
-signed int upkg_object_offset(signed int idx)
+int32_t upkg_object_offset(int idx)
 {
 	idx = export_index(idx);
 	if (idx == -1 || pkg_opened == 0)
@@ -749,8 +761,7 @@ signed int upkg_object_offset(signed int idx)
 	return exports[idx].object_offset;
 }
 
-
-int upkg_read(void *readbuf, signed int bytes, signed int offset)
+int upkg_read(void *readbuf, size_t bytes, long offset)
 {
 	if (pkg_opened == 0)
 		return -1;
@@ -760,7 +771,7 @@ int upkg_read(void *readbuf, signed int bytes, signed int offset)
 	return fread(readbuf, 1, bytes, file);
 }
 
-int upkg_export_dump(char *filename, signed int idx)
+int upkg_export_dump(const char *filename, int idx)
 {
 	int count, diff;
 	void *buffer;
@@ -770,7 +781,7 @@ int upkg_export_dump(char *filename, signed int idx)
 	if (idx == -1 || pkg_opened == 0)
 		return -1;
 
-	buffer = malloc(4096);
+	buffer = calloc(1, 4096);
 	if (buffer == NULL)
 		return -1;
 
@@ -797,7 +808,7 @@ int upkg_export_dump(char *filename, signed int idx)
 	return 0;
 }
 
-int upkg_object_dump(char *filename, signed int idx)
+int upkg_object_dump(const char *filename, int idx)
 {
 	int count, diff;
 	void *buffer;
@@ -807,7 +818,7 @@ int upkg_object_dump(char *filename, signed int idx)
 	if (idx == -1 || pkg_opened == 0)
 		return -1;
 
-	buffer = malloc(4096);
+	buffer = calloc(1, 4096);
 	if (buffer == NULL)
 		return -1;
 
