@@ -3,15 +3,15 @@
 
 #include "umr.h"
 
-char readbuf[4096], filename[128];
+static char filename[128];
 
 
-void usage(char *myname)
+static void usage(const char *myname)
 {
 	printf("%s filename [filename ...]\n", myname);
 }
 
-void get_filename(char *out, int upkg_num)
+static void get_filename(char *out, int upkg_num)
 {
 	strcpy(out, upkg_oname(upkg_num));
 	strcat(out, ".");
@@ -29,9 +29,9 @@ int main(int argc, char *argv[])
 
 	printf("%d file", argc - 1);
 	if (argc > 2)
-		printf("s\n");
+		printf("s\n\n");
 	else
-		printf("\n");
+		printf("\n\n");
 
 	j = 0;
 
@@ -56,10 +56,11 @@ int main(int argc, char *argv[])
 			}
 
 			upkg_close();
+			printf("\n");
 		}
 	}
 
-	printf("%d files processed\n", j);
+	printf("%d files processed\n\n", j);
 
 	return 0;
 }
