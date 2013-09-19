@@ -14,6 +14,10 @@ upkg_export_hdr export_desc[] = {
 	{62, "Sound", "FjFn3sFd"},
 	{62, "Palette", ""},
 
+	{63, "Music", "FjFn3sFd"},	// 63: Return to NaPali
+	{63, "Sound", "FjFn3sFd"},
+	{63, "Palette", ""},
+
 	{64, "Music", "FjFn3sFd"},
 	{64, "Music", "FjFn3sFd"},
 	{64, "Palette", ""},
