@@ -171,9 +171,7 @@ static int32_t get_fci(const char *in, int *pos)
 	int32_t a;
 	int size;
 
-	a = 0;
 	size = 1;
-
 	a = in[0] & 0x3f;
 
 	if (in[0] & 0x40) {
@@ -384,31 +382,31 @@ static int load_upkg(void)
 // load the name table
 static void get_names(void)
 {
-	int i, index, c;
+	int i, idx, c;
 	long nofs;
 	char readbuf[80];
 	const char *str;
 
 	nofs = hdr->name_offset;
-	index = 0;
+	idx = 0;
 
 	for (i = 0; i < hdr->name_count; i++) {
-		nofs += index;
-		index = 0;
+		nofs += idx;
+		idx = 0;
 		memset(readbuf, 0, 80);
 		fseek(file, nofs, SEEK_SET);
 		fread(readbuf, 1, 80, file);
 
 		if (hdr->file_version >= 64) {
-			c = get_s8(&readbuf[index], &index);
-			str = get_string(&readbuf[index], c, &index);
+			c = get_s8(&readbuf[idx], &idx);
+			str = get_string(&readbuf[idx], c, &idx);
 		} else {
-			str = get_string(&readbuf[index], UPKG_NAME_NOCOUNT, &index);
+			str = get_string(&readbuf[idx], UPKG_NAME_NOCOUNT, &idx);
 		}
 
 		strncpy(names[i].name, str, UPKG_MAX_NAME_SIZE);
 
-		names[i].flags = get_s32(&readbuf[index], &index);
+		names[i].flags = get_s32(&readbuf[idx], &idx);
 
 		print_name(i);
 		printf("\n");
@@ -441,30 +439,30 @@ static void get_exports_cpnames(int idx) {
 
 static void get_exports(void)
 {
-	int i, index;
+	int i, idx;
 	long eofs;
 	char readbuf[40];
 
 	eofs = hdr->export_offset;
-	index = 0;
+	idx = 0;
 
 	for (i = 0; i < hdr->export_count; i++) {
-		eofs += index;
-		index = 0;
+		eofs += idx;
+		idx = 0;
 		memset(readbuf, 0, 40);
 		fseek(file, eofs, SEEK_SET);
 		fread(readbuf, 1, 40, file);
 
-		exports[i].class_index = get_fci(&readbuf[index], &index);
-		exports[i].package_index = get_s32(&readbuf[index], &index);
-		exports[i].super_index = get_fci(&readbuf[index], &index);
-		exports[i].object_name = get_fci(&readbuf[index], &index);
-		exports[i].object_flags = get_s32(&readbuf[index], &index);
-		exports[i].serial_size = get_fci(&readbuf[index], &index);
+		exports[i].class_index = get_fci(&readbuf[idx], &idx);
+		exports[i].package_index = get_s32(&readbuf[idx], &idx);
+		exports[i].super_index = get_fci(&readbuf[idx], &idx);
+		exports[i].object_name = get_fci(&readbuf[idx], &idx);
+		exports[i].object_flags = get_s32(&readbuf[idx], &idx);
+		exports[i].serial_size = get_fci(&readbuf[idx], &idx);
 
 		if (exports[i].serial_size > 0) {
 			exports[i].serial_offset =
-			    get_fci(&readbuf[index], &index);
+			    get_fci(&readbuf[idx], &idx);
 		} else {
 			exports[i].serial_offset = -1;
 		}
@@ -476,58 +474,58 @@ static void get_exports(void)
 // load the import table (notice a trend?).  same story as get_exports()
 static void get_imports(void)
 {
-	int i, index;
+	int i, idx;
 	long iofs;
 	char readbuf[40];
 
 	iofs = hdr->import_offset;
-	index = 0;
+	idx = 0;
 
 	for (i = 0; i < hdr->import_count; i++) {
-		iofs += index;
-		index = 0;
+		iofs += idx;
+		idx = 0;
 		memset(readbuf, 0, 40);
 		fseek(file, iofs, SEEK_SET);
 		fread(readbuf, 1, 40, file);
 
-		imports[i].class_package = get_fci(&readbuf[index], &index);
-		imports[i].class_name = get_fci(&readbuf[index], &index);
-		imports[i].package_index = get_s32(&readbuf[index], &index);
-		imports[i].object_name = get_fci(&readbuf[index], &index);
+		imports[i].class_package = get_fci(&readbuf[idx], &idx);
+		imports[i].class_name = get_fci(&readbuf[idx], &idx);
+		imports[i].package_index = get_s32(&readbuf[idx], &idx);
+		imports[i].object_name = get_fci(&readbuf[idx], &idx);
 	}
 }
 
 // load the type_names
 static void get_type(const char *buf, int e, int d)
 {
-	int i, index, c;
+	int i, idx, c;
 	int32_t tmp = 0;// avoid uninitialized warning
 	//char *chtmp;// currently unused result
 
-	index = 0;
+	idx = 0;
 
 	for (i = 0; i < (int) strlen(export_desc[d].order); i++) {
 		switch (export_desc[d].order[i]) {
 		case UPKG_DATA_FCI:
-			tmp = get_fci(&buf[index], &index);
+			tmp = get_fci(&buf[idx], &idx);
 			break;
 		case UPKG_DATA_32:
-			tmp = get_s32(&buf[index], &index);
+			tmp = get_s32(&buf[idx], &idx);
 			break;
 		case UPKG_DATA_16:
-			tmp = get_s16(&buf[index], &index);
+			tmp = get_s16(&buf[idx], &idx);
 			break;
 		case UPKG_DATA_8:
-			tmp = get_s8(&buf[index], &index);
+			tmp = get_s8(&buf[idx], &idx);
 			break;
 		case UPKG_DATA_ASCIC:
-			c = get_s8(&buf[index], &index);
+			c = get_s8(&buf[idx], &idx);
 			//chtmp =
-			    get_string(&buf[index], c, &index);
+			    get_string(&buf[idx], c, &idx);
 			break;
 		case UPKG_DATA_ASCIZ:
 			//chtmp =
-			    get_string(&buf[index], UPKG_NAME_NOCOUNT, &index);
+			    get_string(&buf[idx], UPKG_NAME_NOCOUNT, &idx);
 			break;
 		case UPKG_OBJ_JUNK:	// do nothing!!!
 			break;
@@ -548,7 +546,7 @@ static void get_type(const char *buf, int e, int d)
 		}
 	}
 
-	exports[e].object_offset = exports[e].serial_offset + index;
+	exports[e].object_offset = exports[e].serial_offset + idx;
 }
 
 static int get_types_isgood(int idx)
