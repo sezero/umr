@@ -384,13 +384,16 @@ static int load_upkg(void)
 // load the name table
 static void get_names(void)
 {
-	int i, j, index, c;
+	int i, index, c;
+	int32_t j;
 	char readbuf[80];
 	const char *str;
 
 	j = index = 0;
 
 	for (i = 0; i < hdr->name_count; i++) {
+		j += index;
+		index = 0;
 		memset(readbuf, 0, 80);
 		fseek(file, hdr->name_offset + j, SEEK_SET);
 		fread(readbuf, 1, 80, file);
@@ -408,9 +411,6 @@ static void get_names(void)
 
 		print_name(i);
 		printf("\n");
-
-		j += index;
-		index = 0;
 	}
 
 // hdr->name_count + 1 names total, this one's last
@@ -440,12 +440,15 @@ static void get_exports_cpnames(int idx) {
 
 static void get_exports(void)
 {
-	int i, j, index;
+	int i, index;
+	int32_t j;
 	char readbuf[40];
 
 	j = index = 0;
 
 	for (i = 0; i < hdr->export_count; i++) {
+		j += index;
+		index = 0;
 		memset(readbuf, 0, 40);
 		fseek(file, hdr->export_offset + j, SEEK_SET);
 		fread(readbuf, 1, 40, file);
@@ -465,21 +468,21 @@ static void get_exports(void)
 		}
 
 		get_exports_cpnames(i);	// go grab the class & package names
-
-		j += index;
-		index = 0;
 	}
 }
 
 // load the import table (notice a trend?).  same story as get_exports()
 static void get_imports(void)
 {
-	int i, j, index;
+	int i, index;
+	int32_t j;
 	char readbuf[40];
 
 	j = index = 0;
 
 	for (i = 0; i < hdr->import_count; i++) {
+		j += index;
+		index = 0;
 		memset(readbuf, 0, 40);
 		fseek(file, hdr->import_offset + j, SEEK_SET);
 		fread(readbuf, 1, 40, file);
@@ -488,9 +491,6 @@ static void get_imports(void)
 		imports[i].class_name = get_fci(&readbuf[index], &index);
 		imports[i].package_index = get_s32(&readbuf[index], &index);
 		imports[i].object_name = get_fci(&readbuf[index], &index);
-
-		j += index;
-		index = 0;
 	}
 }
 
