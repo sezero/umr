@@ -22,6 +22,8 @@ const upkg_export_hdr export_desc[] = {
 	{64, "Music", "FjFn3sFd"},
 	{64, "Palette", ""},
 
+	{65, "Sound", "FjFn3sFd"},	// UT: AmbCity.uax, Pan1.uax
+
 	{66, "Music", "FjFn3sFd"},
 	{66, "Sound", "FjFn3sFd"},
 	{66, "Palette", ""},
@@ -29,6 +31,12 @@ const upkg_export_hdr export_desc[] = {
 	{68, "Music", "FjFn3sFd"},
 	{68, "Sound", "FjFn3sFd"},
 	{68, "Palette", ""},
+
+	{69, "Sound", "FjFn3sFd"},	// UT: chaossounds.uax, chaossounds2.uax
+
+	{71, "Sound", "FjFn3sFd"},	// DS9 The Fallen
+	{72, "Sound", "FjFn3sFd"},	//
+	{73, "Sound", "FjFn3sFd"},	//
 
 	{0, "", ""}		// last entry must have version == 0
 };

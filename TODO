@@ -1,5 +1,4 @@
 
-* fix the problems with upkgs that have big name/export/import tables
 * reorder functions in unrealfmt.c so it's easier to read
 * general code cleanups
 * add more supported object types!!!

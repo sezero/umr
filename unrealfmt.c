@@ -13,20 +13,20 @@ static upkg_names *names;
 
 static FILE *file;			// we store the file pointer globally around here
 
-static int data_size,			// a way to standardize some freaky parts of the format
-	   pkg_opened = 0;		// sanity check
+static int pkg_opened = 0;		// sanity check
 static int indent_level;
 
-static char header[4096],		// we load the header into this buffer
-	    buf[256];			// temp buf for get_string()
+static char header[64];		// we load the header into this buffer
 
 
 static char *print_flags(signed int flags) {
+    static char buf[256];
+
     memset((void *)buf, 0, 256);
 
     if (flags & RF_Transactional)
 	strcat(buf, "Transactional");
-	
+
     if (flags & RF_SourceModified)
 	strcat(buf, " SrcModified");
 
@@ -50,7 +50,7 @@ static char *print_flags(signed int flags) {
 
     if (flags & RF_Intrinsic)
 	strcat(buf, " Intrinsic");
-	
+
     return buf;
 }
 
@@ -86,14 +86,14 @@ static void print_name(int i) {
 
 static void indent(int level) {
     int i;
-    
+
     for (i = -1; i < level; i++)
 	printf("  ");
 }
 
 static void print_export(int idx) {
     int level, tmp;
-    
+
     level = indent_level++;
 
     indent(level - 1);
@@ -101,7 +101,7 @@ static void print_export(int idx) {
 
     indent(level);
     printf("class_index   = %d\n",  exports[idx].class_index);
-    
+
     indent(level);
     printf("package_index = %d\n",  exports[idx].package_index);
 
@@ -146,7 +146,7 @@ static void print_export(int idx) {
 
 static void print_import(int idx) {
     int level;
-    
+
     level = indent_level++;
 
     indent(level - 1);
@@ -154,19 +154,19 @@ static void print_import(int idx) {
 
     indent(level);
     printf("class_package = %s\n", names[imports[idx].class_package].name);
-    
+
     indent(level);
     printf("class_name    = %s\n", names[imports[idx].class_name].name);
-    
+
     indent(level);
     printf("package_index = %d\n",  imports[idx].package_index);
-    
+
     indent(level);
     printf("object_name   = %s\n", names[imports[idx].object_name].name);
 }
 
 // this function decodes the encoded indices in the upkg files
-static int32_t get_fci(char *in)
+static int32_t get_fci(const char *in, int *pos)
 {
 	int32_t a;
 	int size;
@@ -199,7 +199,7 @@ static int32_t get_fci(char *in)
 	if (in[0] & 0x80)
 		a = -a;
 
-	data_size = size;
+	*pos += size;
 
 	return a;
 }
@@ -207,34 +207,36 @@ static int32_t get_fci(char *in)
 // read Little Endian data in an endian-neutral way
 #define READ_INT16(b) ((b)[0] | ((b)[1] << 8))
 #define READ_INT32(b) ((b)[0] | ((b)[1] << 8) | ((b)[2] << 16) | ((b)[3] << 24))
-static int32_t get_s32(void *addr)
+static int32_t get_s32(const void *addr, int *pos)
 {
-	unsigned char *p = (unsigned char *)addr;
-	data_size = 4;
+	const unsigned char *p = (const unsigned char *)addr;
+	*pos += 4;
 	return (int32_t)READ_INT32(p);
 }
 
-static int32_t get_s16(void *addr)
+static int32_t get_s16(const void *addr, int *pos)
 {
-	unsigned char *p = (unsigned char *)addr;
-	data_size = 2;
+	const unsigned char *p = (const unsigned char *)addr;
+	*pos += 2;
 	return (int16_t)READ_INT16(p);
 }
 
-static int32_t get_s8(void *addr)
+static int32_t get_s8(const void *addr, int *pos)
 {
-	data_size = sizeof(signed char);
+	*pos += sizeof(signed char);
 	return *(signed char *) addr;
 }
 
-static char *get_string(char *addr, int count)
+static char *get_string(const char *addr, int count, int *pos)
 {
+	static char buf[256];
+
 	if (count > UPKG_MAX_NAME_SIZE || count == UPKG_NAME_NOCOUNT)
 		count = UPKG_MAX_NAME_SIZE;
 
 	strncpy(buf, addr, count);	// the string stops at count chars, or is ASCIIZ
 
-	data_size = strlen(buf) + 1;
+	*pos += strlen(buf) + 1;
 
 	return buf;
 }
@@ -260,9 +262,9 @@ static int import_index(int i)
 // idx == exports[idx], c_idx == index to the next element from idx
 static int set_classname(int idx, int c_idx) {
     int i, next;
-    
+
     i = c_idx;
-    
+
     do {
 	if (i < 0) {
 	    i = import_index(i);
@@ -271,10 +273,10 @@ static int set_classname(int idx, int c_idx) {
 		exports[idx].class_name = imports[i].object_name;
 		return imports[i].package_index;
 	    }
-	    
+
 	    next = imports[i].package_index;
 	}
-	
+
 	if (i > 0) {
 	    i = export_index(i);
 	    print_export(i);
@@ -282,19 +284,19 @@ static int set_classname(int idx, int c_idx) {
 	} else {
 	    break;
 	}
-	
+
 	i = next;
     } while (i >= -hdr->import_count && i < hdr->export_count);
-    
+
     exports[idx].class_name = hdr->name_count;
     return c_idx;
 }
 
 static int set_pkgname(int idx, int c_idx) {
     int i, next;
-    
+
     i = c_idx;
-    
+
     do {
 	if (i < 0) {
 	    i = import_index(i);
@@ -303,10 +305,10 @@ static int set_pkgname(int idx, int c_idx) {
 		exports[idx].package_name = imports[i].object_name;
 		return imports[i].package_index;
 	    }
-	    
+
 	    next = imports[i].package_index;
 	}
-	
+
 	if (i > 0) {
 	    i = export_index(i);
 	    print_export(i);
@@ -315,10 +317,10 @@ static int set_pkgname(int idx, int c_idx) {
 	} else {
 	    break;
 	}
-	
+
 	i = next;
     } while (i >= -hdr->import_count && i < hdr->export_count);
-    
+
     exports[idx].package_name = hdr->name_count;
     return c_idx;
 }
@@ -373,7 +375,7 @@ static int load_upkg(void)
 		names = NULL;
 		return -1;
 	}
-	
+
 	print_pkg_hdr();
 
 	return 0;
@@ -382,29 +384,35 @@ static int load_upkg(void)
 // load the name table
 static void get_names(void)
 {
-	int i, index;
+	int i, j, index, c;
+	char readbuf[80];
+	const char *str;
 
-	index = hdr->name_offset;
+	j = index = 0;
 
 	for (i = 0; i < hdr->name_count; i++) {
+		memset(readbuf, 0, 80);
+		fseek(file, hdr->name_offset + j, SEEK_SET);
+		fread(readbuf, 1, 80, file);
+
 		if (hdr->file_version >= 64) {
-			get_string(&header[index + 1],
-				   get_s8(&header[index]));
-			index++;
+			c = get_s8(&readbuf[index], &index);
+			str = get_string(&readbuf[index], c, &index);
 		} else {
-			get_string(&header[index], UPKG_NAME_NOCOUNT);
+			str = get_string(&readbuf[index], UPKG_NAME_NOCOUNT, &index);
 		}
-		index += data_size;
 
-		strncpy(names[i].name, buf, UPKG_MAX_NAME_SIZE);
+		strncpy(names[i].name, str, UPKG_MAX_NAME_SIZE);
 
-		names[i].flags = get_s32(&header[index]);
-		index += data_size;
-		
+		names[i].flags = get_s32(&readbuf[index], &index);
+
 		print_name(i);
 		printf("\n");
+
+		j += index;
+		index = 0;
 	}
-	
+
 // hdr->name_count + 1 names total, this one's last
 	strncpy(names[i].name, "(NULL)", UPKG_MAX_NAME_SIZE);
 	names[i].flags = 0;
@@ -414,95 +422,82 @@ static void get_names(void)
 // load the export table (which is at the end of the file... go figure)
 static void get_exports_cpnames(int idx) {
     int x;
-    
+
     if (idx < 0 || idx >= hdr->export_count)
 	return;
     printf("%d\n", idx);
-    
+
     indent_level = 0;
-    
+
     print_export(idx);
-    
+
     x = exports[idx].class_index;
-    
+
     x = set_classname(idx, x);
-    
+
     set_pkgname(idx, x);
 }
 
 static void get_exports(void)
 {
-	int i, index;
-	char readbuf[1024];
+	int i, j, index;
+	char readbuf[40];
 
-	fseek(file, hdr->export_offset, SEEK_SET);
-
-	fread((void *) readbuf, 1, 1024, file);
-
-	index = 0;
+	j = index = 0;
 
 	for (i = 0; i < hdr->export_count; i++) {
-		exports[i].class_index = get_fci(&readbuf[index]);
-		index += data_size;
+		memset(readbuf, 0, 40);
+		fseek(file, hdr->export_offset + j, SEEK_SET);
+		fread(readbuf, 1, 40, file);
 
-		exports[i].package_index = get_s32(&readbuf[index]);
-		index += data_size;
-
-		exports[i].super_index = get_fci(&readbuf[index]);
-		index += data_size;
-
-		exports[i].object_name = get_fci(&readbuf[index]);
-		index += data_size;
-
-		exports[i].object_flags = get_s32(&readbuf[index]);
-		index += data_size;
-
-		exports[i].serial_size = get_fci(&readbuf[index]);
-		index += data_size;
+		exports[i].class_index = get_fci(&readbuf[index], &index);
+		exports[i].package_index = get_s32(&readbuf[index], &index);
+		exports[i].super_index = get_fci(&readbuf[index], &index);
+		exports[i].object_name = get_fci(&readbuf[index], &index);
+		exports[i].object_flags = get_s32(&readbuf[index], &index);
+		exports[i].serial_size = get_fci(&readbuf[index], &index);
 
 		if (exports[i].serial_size > 0) {
 			exports[i].serial_offset =
-			    get_fci(&readbuf[index]);
-			index += data_size;
+			    get_fci(&readbuf[index], &index);
 		} else {
 			exports[i].serial_offset = -1;
 		}
 
 		get_exports_cpnames(i);	// go grab the class & package names
+
+		j += index;
+		index = 0;
 	}
 }
 
 // load the import table (notice a trend?).  same story as get_exports()
 static void get_imports(void)
 {
-	int i, index;
-	char readbuf[1024];
+	int i, j, index;
+	char readbuf[40];
 
-	fseek(file, hdr->import_offset, SEEK_SET);
-
-	fread((void *) readbuf, 1, 1024, file);
-
-	index = 0;
+	j = index = 0;
 
 	for (i = 0; i < hdr->import_count; i++) {
-		imports[i].class_package = get_fci(&readbuf[index]);
-		index += data_size;
+		memset(readbuf, 0, 40);
+		fseek(file, hdr->import_offset + j, SEEK_SET);
+		fread(readbuf, 1, 40, file);
 
-		imports[i].class_name = get_fci(&readbuf[index]);
-		index += data_size;
+		imports[i].class_package = get_fci(&readbuf[index], &index);
+		imports[i].class_name = get_fci(&readbuf[index], &index);
+		imports[i].package_index = get_s32(&readbuf[index], &index);
+		imports[i].object_name = get_fci(&readbuf[index], &index);
 
-		imports[i].package_index = get_s32(&readbuf[index]);
-		index += data_size;
-
-		imports[i].object_name = get_fci(&readbuf[index]);
-		index += data_size;
+		j += index;
+		index = 0;
 	}
-}	
+}
 
 // load the type_names
-static void get_type(char *buf, int e, int d)
+static void get_type(const char *buf, int e, int d)
 {
-	int i, index;
+	int i, index, c;
 	int32_t tmp = 0;// avoid uninitialized warning
 	//char *chtmp;// currently unused result
 
@@ -511,32 +506,25 @@ static void get_type(char *buf, int e, int d)
 	for (i = 0; i < (int) strlen(export_desc[d].order); i++) {
 		switch (export_desc[d].order[i]) {
 		case UPKG_DATA_FCI:
-			tmp = get_fci(&buf[index]);
-			index += data_size;
+			tmp = get_fci(&buf[index], &index);
 			break;
 		case UPKG_DATA_32:
-			tmp = get_s32(&buf[index]);
-			index += data_size;
+			tmp = get_s32(&buf[index], &index);
 			break;
 		case UPKG_DATA_16:
-			tmp = get_s16(&buf[index]);
-			index += data_size;
+			tmp = get_s16(&buf[index], &index);
 			break;
 		case UPKG_DATA_8:
-			tmp = get_s8(&buf[index]);
-			index += data_size;
+			tmp = get_s8(&buf[index], &index);
 			break;
 		case UPKG_DATA_ASCIC:
+			c = get_s8(&buf[index], &index);
 			//chtmp =
-			    get_string(&buf[index + 1],
-				       get_s8(&buf[index]));
-			index++;
-			index += data_size;
+			    get_string(&buf[index], c, &index);
 			break;
 		case UPKG_DATA_ASCIZ:
 			//chtmp =
-			    get_string(&buf[index], UPKG_NAME_NOCOUNT);
-			index += data_size;
+			    get_string(&buf[index], UPKG_NAME_NOCOUNT, &index);
 			break;
 		case UPKG_OBJ_JUNK:	// do nothing!!!
 			break;
@@ -638,7 +626,7 @@ int upkg_open(const char *filename)
 	if (file == NULL)
 		return -1;
 
-	if (fread((void *) header, 1, 4096, file) < 4096) {
+	if (fread((void *) header, 1, 64, file) < 64) {
 		fclose(file);
 		return -2;
 	}
