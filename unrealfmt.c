@@ -655,6 +655,10 @@ void upkg_close(void)
 	if (pkg_opened == 0)
 		return;
 
+	pkg_opened = 0;
+
+	fclose(file);
+	file = NULL;
 	free(imports);
 	free(exports);
 	free(names);
@@ -662,10 +666,6 @@ void upkg_close(void)
 	exports = NULL;
 	names = NULL;
 	hdr = NULL;
-
-	fclose(file);
-
-	pkg_opened = 0;
 }
 
 // API stuff...  should be self-explainatory (upkg_o* == unreal package object *)
@@ -794,6 +794,7 @@ int upkg_export_dump(const char *filename, int idx)
 		count -= diff;
 	} while (count > 0);
 
+	fclose(out);
 	free(buffer);
 
 	return 0;
@@ -831,6 +832,7 @@ int upkg_object_dump(const char *filename, int idx)
 		count -= diff;
 	} while (count > 0);
 
+	fclose(out);
 	free(buffer);
 
 	return 0;
