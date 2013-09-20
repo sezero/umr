@@ -385,17 +385,18 @@ static int load_upkg(void)
 static void get_names(void)
 {
 	int i, index, c;
-	int32_t j;
+	long nofs;
 	char readbuf[80];
 	const char *str;
 
-	j = index = 0;
+	nofs = hdr->name_offset;
+	index = 0;
 
 	for (i = 0; i < hdr->name_count; i++) {
-		j += index;
+		nofs += index;
 		index = 0;
 		memset(readbuf, 0, 80);
-		fseek(file, hdr->name_offset + j, SEEK_SET);
+		fseek(file, nofs, SEEK_SET);
 		fread(readbuf, 1, 80, file);
 
 		if (hdr->file_version >= 64) {
@@ -441,16 +442,17 @@ static void get_exports_cpnames(int idx) {
 static void get_exports(void)
 {
 	int i, index;
-	int32_t j;
+	long eofs;
 	char readbuf[40];
 
-	j = index = 0;
+	eofs = hdr->export_offset;
+	index = 0;
 
 	for (i = 0; i < hdr->export_count; i++) {
-		j += index;
+		eofs += index;
 		index = 0;
 		memset(readbuf, 0, 40);
-		fseek(file, hdr->export_offset + j, SEEK_SET);
+		fseek(file, eofs, SEEK_SET);
 		fread(readbuf, 1, 40, file);
 
 		exports[i].class_index = get_fci(&readbuf[index], &index);
@@ -475,16 +477,17 @@ static void get_exports(void)
 static void get_imports(void)
 {
 	int i, index;
-	int32_t j;
+	long iofs;
 	char readbuf[40];
 
-	j = index = 0;
+	iofs = hdr->import_offset;
+	index = 0;
 
 	for (i = 0; i < hdr->import_count; i++) {
-		j += index;
+		iofs += index;
 		index = 0;
 		memset(readbuf, 0, 40);
-		fseek(file, hdr->import_offset + j, SEEK_SET);
+		fseek(file, iofs, SEEK_SET);
 		fread(readbuf, 1, 40, file);
 
 		imports[i].class_package = get_fci(&readbuf[index], &index);
