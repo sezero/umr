@@ -5,16 +5,19 @@
 #include "umr.h"
 
 
+/* orig. documentation by Tim Sweeney was at
+ * http://unreal.epicgames.com/Packages.htm  */
+
 #define UPKG_MAX_NAME_SIZE	64
 #define UPKG_MAX_ORDERS		10
 
-// all data types in upkg files are signed
-#define UPKG_DATA_FCI	'F'
-#define UPKG_DATA_32	'3'
-#define UPKG_DATA_16	'1'
-#define UPKG_DATA_8	'8'
-#define UPKG_DATA_ASCIC	'C'
-#define UPKG_DATA_ASCIZ	'Z'
+/* all data types in upkg files are signed */
+#define UPKG_DATA_FCI	'F'	/* FCompactIndex */
+#define UPKG_DATA_32	'3'		/* int32 */
+#define UPKG_DATA_16	'1'		/* int16 */
+#define UPKG_DATA_8	'8'		/* int8  */
+#define UPKG_DATA_ASCIC	'C'	/* <byte numchars><string>'\0' */
+#define UPKG_DATA_ASCIZ	'Z'	/* simply a usual <string>'\0' */
 
 #define UPKG_OBJ_JUNK	'j'
 #define UPKG_OBJ_NAME	'n'
@@ -47,9 +50,22 @@ struct unreal_pkg_hdr {
 	 export_count,		// num. exports in export table  (>= 0)
 	 export_offset,		// offset to export table        (>= 0)
 	 import_count,		//  -- seeing a trend yet?       (>= 0)
-	 import_offset,		//                               (>= 0)
-	 heritage_count,	// heritage table (has GUID's)   (>= 1)
-	 heritage_offset;	//                               (>= 0)
+	 import_offset;		//                               (>= 0)
+
+	/* number of GUIDs in heritage table (>= 1) and table's offset:
+	 * with version < 68. */
+	int32_t heritage_count,
+	 heritage_offset;
+
+	/* with versions >= 68:  a GUID, a dword for generation count
+	   and export_count and name_count dwords for each generation:
+	uint32_t guid[4];
+	int32_t generation_count;
+	struct _genhist {
+		int32_t export_count,
+			name_count;
+	} genhist[generation_count];
+	*/
 };
 #pragma pack()
 
@@ -116,4 +132,4 @@ typedef struct unreal_pkg_object_hdr upkg_object_hdr;
 extern const upkg_export_hdr export_desc[];
 extern const upkg_object_hdr object_desc[];
 
-#endif				// _URF_H
+#endif	/* _URF_H */

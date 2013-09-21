@@ -165,7 +165,10 @@ static void print_import(int idx) {
     printf("object_name   = %s\n", names[imports[idx].object_name].name);
 }
 
-// this function decodes the encoded indices in the upkg files
+/* decode an FCompactIndex.
+ * original documentation by Tim Sweeney was at
+ * http://unreal.epicgames.com/Packages.htm
+ */
 static int32_t get_fci(const char *in, int *pos)
 {
 	int32_t a;
@@ -202,7 +205,7 @@ static int32_t get_fci(const char *in, int *pos)
 	return a;
 }
 
-// read Little Endian data in an endian-neutral way
+/* read Little Endian data in an endian-neutral way */
 #define READ_INT16(b) ((b)[0] | ((b)[1] << 8))
 #define READ_INT32(b) ((b)[0] | ((b)[1] << 8) | ((b)[2] << 16) | ((b)[3] << 24))
 static int32_t get_s32(const void *addr, int *pos)
@@ -339,7 +342,16 @@ static int load_upkg(void)
 
 	hdr = (upkg_hdr *) header;
 
+	print_pkg_hdr();
+
 	if (hdr->tag != UPKG_HDR_TAG)
+		return -1;
+	if (hdr->name_count	< 0	||
+	    hdr->name_offset	< 0	||
+	    hdr->export_count	< 0	||
+	    hdr->export_offset	< 0	||
+	    hdr->import_count	< 0	||
+	    hdr->import_offset	< 0	)
 		return -1;
 
 	for (i = 0; export_desc[i].version; i++) {
@@ -373,8 +385,6 @@ static int load_upkg(void)
 		names = NULL;
 		return -1;
 	}
-
-	print_pkg_hdr();
 
 	return 0;
 }
