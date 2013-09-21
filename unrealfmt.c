@@ -677,7 +677,7 @@ void upkg_close(void)
 }
 
 // API stuff...  should be self-explainatory (upkg_o* == unreal package object *)
-signed int upkg_ocount(void)
+int32_t upkg_ocount(void)
 {
 	if (pkg_opened == 0)
 		return -1;
@@ -685,7 +685,7 @@ signed int upkg_ocount(void)
 	return hdr->export_count;
 }
 
-char *upkg_oname(int idx)
+const char *upkg_oname(int idx)
 {
 	idx = export_index(idx);
 	if (idx == -1 || pkg_opened == 0)
@@ -694,7 +694,7 @@ char *upkg_oname(int idx)
 	return names[exports[idx].object_name].name;
 }
 
-char *upkg_oclassname(int idx)
+const char *upkg_oclassname(int idx)
 {
 	idx = export_index(idx);
 	if (idx == -1 || pkg_opened == 0)
@@ -703,7 +703,7 @@ char *upkg_oclassname(int idx)
 	return names[exports[idx].class_name].name;
 }
 
-char *upkg_opackagename(int idx)
+const char *upkg_opackagename(int idx)
 {
 	idx = export_index(idx);
 	if (idx == -1 || pkg_opened == 0)
@@ -712,7 +712,7 @@ char *upkg_opackagename(int idx)
 	return names[exports[idx].package_name].name;
 }
 
-char *upkg_otype(int idx)
+const char *upkg_otype(int idx)
 {
 	idx = export_index(idx);
 	if (idx == -1 || pkg_opened == 0)
@@ -777,7 +777,7 @@ int upkg_export_dump(const char *filename, int idx)
 	FILE *out;
 
 	idx = export_index(idx);
-	if (idx == -1 || pkg_opened == 0)
+	if (idx < 0 || pkg_opened == 0)
 		return -1;
 
 	buffer = calloc(1, 4096);
@@ -815,7 +815,7 @@ int upkg_object_dump(const char *filename, int idx)
 	FILE *out;
 
 	idx = export_index(idx);
-	if (idx == -1 || pkg_opened == 0)
+	if (idx < 0 || pkg_opened == 0)
 		return -1;
 
 	buffer = calloc(1, 4096);
