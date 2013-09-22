@@ -11,22 +11,23 @@ Changes since the original v0.3:
 - Fixes for crashes when run to process multiple files.
 - Support for 64 bit systems.
 - Support for big endian systems.
-- Support for Return to NaPali *.umx music.
+- Support for Return to NaPali and Mobile Forces *.umx music.
 - Support for file version 63, 65, 69, 71, 72, 73, 79, 80, 81, 83, and
-  85 sound files from Wheel of Time, Unreal Tournament, DS9 The Fallen,
-  Rune and Undying.
+  85 sound files from Wheel of Time, DS9 The Fallen, Tactical Ops, Rune,
+  Mobile Forces and Undying.
 - Several code cleanups.
 
 Supported UMX files:
 --------------------
-- UMX music from from Unreal, Return to NaPali, Unreal Tournament, and
-  DeusEx are extracted successfully.
+- UMX music from Unreal, Return to NaPali, Unreal Tournament, DeusEx,
+  Tactical Ops, and Mobile Forces are extracted successfully.
 
 Supported UAX files:
 --------------------
 - UAX sound packages from Unreal, Return to NaPali, Unreal Tournament,
   DeusEx, Klingon Honor Guard, Wheel of Time, DS9: The Fallen, Undying,
-  and Rune are extracted successfully.
+  Nerf Arena Blast, Rune, Tactical Ops and Mobile Forces are extracted
+  successfully.
 
 Known problems:
 ---------------

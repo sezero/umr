@@ -14,15 +14,15 @@ const upkg_export_hdr export_desc[] = {
 	{62, "Sound", "FjFn3sFd"},
 	{62, "Palette", ""},
 
-	{63, "Music", "FjFn3sFd"},	// 63: Return to NaPali
-	{63, "Sound", "FjFn3sFd"},
+	{63, "Music", "FjFn3sFd"},	// Return to NaPali
+	{63, "Sound", "FjFn3sFd"},	// Wheel of Time
 	{63, "Palette", ""},
 
 	{64, "Music", "FjFn3sFd"},
-	{64, "Music", "FjFn3sFd"},
+	{64, "Sound", "FjFn3sFd"},
 	{64, "Palette", ""},
 
-	{65, "Sound", "FjFn3sFd"},	// UT: AmbCity.uax, Pan1.uax
+	{65, "Sound", "FjFn3sFd"},	// Tactical Ops, UT
 
 	{66, "Music", "FjFn3sFd"},
 	{66, "Sound", "FjFn3sFd"},
@@ -32,17 +32,24 @@ const upkg_export_hdr export_desc[] = {
 	{68, "Sound", "FjFn3sFd"},
 	{68, "Palette", ""},
 
-	{69, "Sound", "FjFn3sFd"},	// UT: chaossounds.uax, chaossounds2.uax
+	{69, "Sound", "FjFn3sFd"},	// Tactical Ops, UT, ...
+	{69, "Music", "FjFn3sFd"},	//
 
 	{71, "Sound", "FjFn3sFd"},	// DS9 The Fallen
 	{72, "Sound", "FjFn3sFd"},	//
 	{73, "Sound", "FjFn3sFd"},	//
 
 	{79, "Sound", "FjFn3j3j3j3j3j3sFd"},		// Undying
-	{80, "Sound", "FjFn3j3j3j3j3j3j3sFd"},		//	(extra dwords are unknown,
-	{81, "Sound", "FjFn3j3j3j3j3j3j3sFd"},		//	 marked as junk for now..)
+	{80, "Sound", "FjFn3j3j3j3j3j3j3sFd"},		// (extra dwords are unknown,
+	{81, "Sound", "FjFn3j3j3j3j3j3j3sFd"},		//  marked as junk for now..)
 	{83, "Sound", "FjFn3j3j3j3j3j3j3j3sFd"},	//
 	{85, "Sound", "FjFn3j3j3j3j3j3j3j3sFd"},	//
+
+	{80, "Sound", "FjFn3sFd"},	// Mobile Forces
+	{81, "Sound", "FjFn3sFd"},	//
+	{82, "Sound", "FjFn3sFd"},	//
+	{83, "Sound", "FjFn3sFd"},	//
+	{83, "Music", "FjFn3sFd"},	//
 
 	{0, "", ""}		// last entry must have version == 0
 };
@@ -57,5 +64,5 @@ const upkg_object_hdr object_desc[] = {
 	{"WAV", "WAVE", 8, "MS PCM Sound"}
 	,
 
-	{"", "", -1, ""}	// last entry must have sig_offset == 0
+	{"", "", -1, ""}	// last entry must have sig_offset == -1
 };

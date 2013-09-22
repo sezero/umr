@@ -559,11 +559,11 @@ static void get_type(const char *buf, int e, int d)
 	exports[e].object_offset = exports[e].serial_offset + idx;
 }
 
-static int get_types_isgood(int idx)
+static int get_types_isgood(int idx, int start)
 {
 	int i;
 
-	for (i = 0; export_desc[i].version; i++) {
+	for (i = start; export_desc[i].version; i++) {
 		if (export_desc[i].version == hdr->file_version) {
 			if (strncmp(export_desc[i].class_name,
 				    names[exports[idx].class_name].name,
@@ -583,14 +583,12 @@ static void check_type(int e, int d)
 	char readbuf[101];
 
 	fseek(file, exports[e].object_offset, SEEK_SET);
-
 	fread((void *) readbuf, 100, 1, file);
 
 	for (i = 0; object_desc[i].sig_offset != -1; i++) {
 		s = object_desc[i].sig_offset;
 		l = strlen(object_desc[i].object_sig);
 		readbuf[100] = readbuf[s + l];
-
 		readbuf[s + l] = 0;
 
 		if (!strcmp(&readbuf[s], object_desc[i].object_sig)) {
@@ -605,18 +603,26 @@ static void check_type(int e, int d)
 
 static void get_types(void)
 {
-	int i, j;
+	int i, j, next;
 	char readbuf[UPKG_MAX_ORDERS * 4];
 
-	for (i = 0; i < hdr->export_count; i++) {
-		if ((j = get_types_isgood(i)) != -1) {
+	for (i = 0, next = 0; i < hdr->export_count; next = 0, i++) {
+		_retry:
+		j = get_types_isgood(i, next);
+		if (j != -1) {
 			fseek(file, exports[i].serial_offset, SEEK_SET);
-
 			fread((void *) readbuf, 4, UPKG_MAX_ORDERS, file);
-
 			get_type(readbuf, i, j);
-
 			check_type(i, j);
+
+			if (exports[i].type_name == -1 &&
+			    hdr->file_version >= 80) {
+			/* Undying / Mobile Forces order difference?
+			 * see if there is an alternative order for
+			 * the same file version/class combination */
+				next = j + 1;
+				goto _retry;
+			}
 		} else {
 			exports[i].type_name = -1;
 		}
@@ -624,9 +630,8 @@ static void get_types(void)
 }
 
 
-//**************  GLOBALS
+// PUBLIC API
 
-// open that puppy!!!  gets the file opened and the data structs read for use
 int upkg_open(const char *filename)
 {
 	if (pkg_opened)		// is there a pkg opened already?
@@ -657,7 +662,6 @@ int upkg_open(const char *filename)
 	return 0;
 }
 
-// close everything out
 void upkg_close(void)
 {
 	if (pkg_opened == 0)
@@ -676,7 +680,6 @@ void upkg_close(void)
 	hdr = NULL;
 }
 
-// API stuff...  should be self-explainatory (upkg_o* == unreal package object *)
 int32_t upkg_ocount(void)
 {
 	if (pkg_opened == 0)
