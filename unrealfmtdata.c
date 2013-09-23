@@ -39,6 +39,11 @@ const upkg_export_hdr export_desc[] = {
 	{72, "Sound", "FjFn3sFd"},	//
 	{73, "Sound", "FjFn3sFd"},	//
 
+	{75, "Music", "FjFn3sFd"},	// Harry Potter and the Philosopher's Stone
+	{75, "Sound", "FjFn3sFd"},	//
+	{76, "Music", "FjFn3sFd"},	//
+	{76, "Sound", "FjFn3sFd"},	//
+
 	{79, "Sound", "FjFn3j3j3j3j3j3sFd"},		// Undying
 	{80, "Sound", "FjFn3j3j3j3j3j3j3sFd"},		// (extra dwords are unknown,
 	{81, "Sound", "FjFn3j3j3j3j3j3j3sFd"},		//  marked as junk for now..)
