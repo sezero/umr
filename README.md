@@ -15,12 +15,16 @@ Changes since the original v0.3:
 - Support for file version 63, 65, 69, 71, 72, 73, 79, 80, 81, 83, and
   85 sound files from Wheel of Time, DS9 The Fallen, Tactical Ops, Rune,
   Mobile Forces and Undying.
+- support Harry Potter and the Philosopher's Stone MP2 format music and
+  sound extraction from *.umx, *.uax and *.u (System/HPSounds.u) files.
 - Several code cleanups.
 
 Supported UMX files:
 --------------------
 - UMX music from Unreal, Return to NaPali, Unreal Tournament, DeusEx,
   Tactical Ops, and Mobile Forces are extracted successfully.
+- Harry Potter and the Philosopher's Stone mpeg layer II format music
+  extracts successfully.
 
 Supported UAX files:
 --------------------
@@ -28,6 +32,8 @@ Supported UAX files:
   DeusEx, Klingon Honor Guard, Wheel of Time, DS9: The Fallen, Undying,
   Nerf Arena Blast, Rune, Tactical Ops and Mobile Forces are extracted
   successfully.
+- Harry Potter and the Philosopher's Stone mpeg layer II format sound
+  extracts successfully.
 
 Known problems:
 ---------------
