@@ -3,34 +3,33 @@
 
 #include "urf.h"
 
-
 /* version,  class_name, order */
 const upkg_export_hdr export_desc[] = {
 	{61, "Music",   "FjFnFd"},
 	{61, "Sound",   "FjFnFd"},
-	{61, "Palette", ""},
+	/*{61, "Palette", ""},*/
 
 	{62, "Music", "FjFn3sFd"},
 	{62, "Sound", "FjFn3sFd"},
-	{62, "Palette", ""},
+	/*{62, "Palette", ""},*/
 
 	{63, "Music", "FjFn3sFd"},	/* Return to NaPali */
 	{63, "Sound", "FjFn3sFd"},	/* Wheel of Time */
-	{63, "Palette", ""},
+	/*{63, "Palette", ""},*/
 
 	{64, "Music", "FjFn3sFd"},
 	{64, "Sound", "FjFn3sFd"},
-	{64, "Palette", ""},
+	/*{64, "Palette", ""},*/
 
 	{65, "Sound", "FjFn3sFd"},	/* Tactical Ops, UT */
 
 	{66, "Music", "FjFn3sFd"},
 	{66, "Sound", "FjFn3sFd"},
-	{66, "Palette", ""},
+	/*{66, "Palette", ""},*/
 
 	{68, "Music", "FjFn3sFd"},
 	{68, "Sound", "FjFn3sFd"},
-	{68, "Palette", ""},
+	/*{68, "Palette", ""},*/
 
 /* Tactical Ops, UT, ... */
 	{69, "Sound", "FjFn3sFd"},
@@ -67,14 +66,10 @@ const upkg_export_hdr export_desc[] = {
 };
 
 const upkg_object_hdr object_desc[] = {
-	{"s3m", "SCRM", 44, "ScreamTracker 3"}
-	,
-	{"it", "IMPM", 0, "Impluse Tracker"}
-	,
-	{"xm", "Fast", 38, "FastTracker 2.0"}
-	,
-	{"WAV", "WAVE", 8, "MS PCM Sound"}
-	,
+	{"s3m", "SCRM", 44, "ScreamTracker 3"},
+	{"it", "IMPM", 0, "Impluse Tracker"},
+	{"xm", "Fast", 38, "FastTracker 2.0"},
+	{"WAV", "WAVE", 8, "MS PCM Sound"},
 
 /* last entry must have sig_offset == -1 */
 	{"", "", -1, ""}
