@@ -6,17 +6,17 @@
 #include "urf.h"
 
 
-static upkg_hdr *hdr;			// read the urf.h for these 4...
+static upkg_hdr *hdr;
 static upkg_exports *exports;
 static upkg_imports *imports;
 static upkg_names *names;
 
-static FILE *file;			// we store the file pointer globally around here
+static FILE *file;	/* we store the file pointer globally around here */
 
-static int pkg_opened = 0;		// sanity check
+static int pkg_opened = 0;		/* sanity check */
 static int indent_level;
 
-static char header[64];		// we load the header into this buffer
+static char header[64];		/* we load the header into this buffer */
 
 
 static char *print_flags(signed int flags) {
@@ -235,7 +235,7 @@ static char *get_string(const char *addr, int count, int *pos)
 	if (count > UPKG_MAX_NAME_SIZE || count == UPKG_NAME_NOCOUNT)
 		count = UPKG_MAX_NAME_SIZE;
 
-	strncpy(buf, addr, count);	// the string stops at count chars, or is ASCIIZ
+	strncpy(buf, addr, count);	/* the string stops at count chars, or is ASCIIZ */
 
 	*pos += strlen(buf) + 1;
 
@@ -260,7 +260,7 @@ static int import_index(int i)
 	return -1;
 }
 
-// idx == exports[idx], c_idx == index to the next element from idx
+/* idx == exports[idx], c_idx == index to the next element from idx */
 static int set_classname(int idx, int c_idx) {
     int i, next;
 
@@ -326,14 +326,14 @@ static int set_pkgname(int idx, int c_idx) {
     return c_idx;
 }
 
-// load in the header, AWA allocating the needed memory for the tables
+/* load in the header, AWA allocating the needed memory for the tables */
 static int load_upkg(void)
 {
 	unsigned char *p;
 	uint32_t *swp;
 	int i;
 
-	// byte swap the header (all members are 32 bit LE values)
+	/* byte swap the header (all members are 32 bit LE values) */
 	p = (unsigned char *) header;
 	swp = (uint32_t *) header;
 	for (i = 0; i < (int)sizeof(upkg_hdr)/4; i++, p += 4) {
@@ -389,7 +389,7 @@ static int load_upkg(void)
 	return 0;
 }
 
-// load the name table
+/* load the name table */
 static void get_names(void)
 {
 	int i, idx, c;
@@ -422,13 +422,13 @@ static void get_names(void)
 		printf("\n");
 	}
 
-// hdr->name_count + 1 names total, this one's last
+/* hdr->name_count + 1 names total, this one's last */
 	strncpy(names[i].name, "(NULL)", UPKG_MAX_NAME_SIZE);
 	names[i].flags = 0;
 	printf("\n");
 }
 
-// load the export table (which is at the end of the file... go figure)
+/* load the export table (which is at the end of the file... go figure) */
 static void get_exports_cpnames(int idx) {
     int x;
 
@@ -477,11 +477,11 @@ static void get_exports(void)
 			exports[i].serial_offset = -1;
 		}
 
-		get_exports_cpnames(i);	// go grab the class & package names
+		get_exports_cpnames(i); /* go grab the class & package names */
 	}
 }
 
-// load the import table (notice a trend?).  same story as get_exports()
+/* load the import table.  same story as get_exports() */
 static void get_imports(void)
 {
 	int i, idx;
@@ -505,12 +505,12 @@ static void get_imports(void)
 	}
 }
 
-// load the type_names
+/* load the type_names */
 static void get_type(const char *buf, int e, int d)
 {
 	int i, idx, c;
-	int32_t tmp = 0;// avoid uninitialized warning
-	//char *chtmp;// currently unused result
+	int32_t tmp = 0;
+	/*char *chtmp;*/
 
 	idx = 0;
 
@@ -530,19 +530,19 @@ static void get_type(const char *buf, int e, int d)
 			break;
 		case UPKG_DATA_ASCIC:
 			c = get_s8(&buf[idx], &idx);
-			//chtmp =
+			/*chtmp =*/
 			    get_string(&buf[idx], c, &idx);
 			break;
 		case UPKG_DATA_ASCIZ:
-			//chtmp =
+			/*chtmp =*/
 			    get_string(&buf[idx], UPKG_NAME_NOCOUNT, &idx);
 			break;
-		case UPKG_OBJ_JUNK:	// do nothing!!!
+		case UPKG_OBJ_JUNK:	/* do nothing */
 			break;
 		case UPKG_OBJ_NAME:
 			exports[e].type_name = tmp;
 			break;
-		case UPKG_EXP_SIZE:	// maybe we'll do something later on
+		case UPKG_EXP_SIZE:	/* maybe we'll do something later on */
 			break;
 		case UPKG_OBJ_SIZE:
 			exports[e].object_size = tmp;
@@ -640,12 +640,12 @@ static void get_types(void)
 }
 
 
-// PUBLIC API
+/* PUBLIC API */
 
 int upkg_open(const char *filename)
 {
-	if (pkg_opened)		// is there a pkg opened already?
-		return -4;	// if so, don't try to open another one!
+	if (pkg_opened)		/* is there a pkg opened already? */
+		return -4;	/* if so, don't try to open another one */
 
 	file = fopen(filename, "rb");
 
@@ -664,7 +664,7 @@ int upkg_open(const char *filename)
 
 	pkg_opened = 1;
 
-	get_names();		// this order is important.
+	get_names();		/* this order is important. */
 	get_imports();
 	get_exports();
 	get_types();

@@ -1,4 +1,3 @@
-
 * reorder functions in unrealfmt.c so it's easier to read
 * general code cleanups
-* add more supported object types!!!
+* add more supported object types

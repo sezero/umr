@@ -42,30 +42,30 @@ enum upkg_flags {
 
 #pragma pack(1)
 struct unreal_pkg_hdr {
-	uint32_t tag;	// hdr tag, should == UPKG_HDR_TAG
-	int32_t file_version,	// should be 61 for unreal.  > for UT
-	 pkg_flags,		// bitflags..  we don't need them
-	 name_count,		// number of names in name table (>= 0)
-	 name_offset,		// offset to name table          (>= 0)
-	 export_count,		// num. exports in export table  (>= 0)
-	 export_offset,		// offset to export table        (>= 0)
-	 import_count,		//  -- seeing a trend yet?       (>= 0)
-	 import_offset;		//                               (>= 0)
+	uint32_t tag;	/* UPKG_HDR_TAG */
+	int32_t file_version;	/* 61 for original unreal */
+	int32_t pkg_flags;	/* bitflags - none needed */
+	int32_t name_count;	/* number of names in name table (>= 0) */
+	int32_t name_offset;		/* offset to name table  (>= 0) */
+	int32_t export_count;	/* num. exports in export table  (>= 0) */
+	int32_t export_offset;		/* offset to export table (>= 0) */
+	int32_t import_count;	/* num. imports in export table  (>= 0) */
+	int32_t import_offset;		/* offset to import table (>= 0) */
 
 	/* number of GUIDs in heritage table (>= 1) and table's offset:
-	 * with version < 68. */
-	int32_t heritage_count,
-	 heritage_offset;
-
+	 * only with versions < 68. */
+	int32_t heritage_count;
+	int32_t heritage_offset;
+#if 0
 	/* with versions >= 68:  a GUID, a dword for generation count
-	   and export_count and name_count dwords for each generation:
+	 * and export_count and name_count dwords for each generation: */
 	uint32_t guid[4];
 	int32_t generation_count;
 	struct _genhist {
-		int32_t export_count,
-			name_count;
-	} genhist[generation_count];
-	*/
+		int32_t export_count;
+		int32_t name_count;
+	} genhist[0/* generation_count */];
+#endif
 };
 #pragma pack()
 
@@ -82,43 +82,43 @@ struct unreal_pkg_hdr {
   type 1 is used for dependency/inheritancy info
 */
 struct unreal_pkg_export_tbl {
-	int32_t class_index,	// index, type 1
-	 package_index,		// index, type 1
-	 super_index,		// index, type 1
-	 object_name,		// index, type 2
-	 object_flags,		// flags for the object (will be supported when I decide to code it ;-)
-	 serial_size,		// size of export described
-	 serial_offset,		// start of the export in the the package file (offset from beginning of file)
-	 class_name,		// index, type 2 (the name of the object class)
-	 package_name,		// index, type 2 (the name of the object package)
-	 type_name,		// index, type 2 (the name of the object type)
-	 object_size,		// bytes of data in object
-	 object_offset;		// offset into package file that object starts
+	int32_t class_index;	/* index, type 1 */
+	int32_t package_index;	/* index, type 1 */
+	int32_t super_index;	/* index, type 1 */
+	int32_t object_name;	/* index, type 2 */
+	int32_t object_flags;	/* flags for the object (will be supported when I decide to code it ;-) */
+	int32_t serial_size;	/* size of export described */
+	int32_t serial_offset;	/* start of the export in the the package file (offset from beginning of file) */
+	int32_t class_name;	/* index, type 2 (the name of the object class) */
+	int32_t package_name;	/* index, type 2 (the name of the object package) */
+	int32_t type_name;	/* index, type 2 (the name of the object type) */
+	int32_t object_size;	/* bytes of data in object */
+	int32_t object_offset;	/* offset into package file that object starts */
 };
 
 struct unreal_pkg_import_tbl {
-	int32_t class_package,	// index, type 2
-	 class_name,		// index, type 2
-	 package_index,		// index, type 1
-	 object_name;		// index, type 2
+	int32_t class_package;	/* index, type 2 */
+	int32_t class_name;	/* index, type 2 */
+	int32_t package_index;	/* index, type 1 */
+	int32_t object_name;	/* index, type 2 */
 };
 
 struct unreal_pkg_name_tbl {
-	char name[UPKG_MAX_NAME_SIZE];	// a name
-	int32_t flags;	// flags for the name
+	char name[UPKG_MAX_NAME_SIZE];	/* a name */
+	int32_t flags;	/* flags for the name */
 };
 
 struct unreal_pkg_export_hdr {
-	int32_t version;	// version of pkg header this supports
-	char class_name[UPKG_MAX_NAME_SIZE];	// unreal class
-	char order[UPKG_MAX_ORDERS * 10];	// order of the header
+	int32_t version;	/* version of pkg header this supports */
+	char class_name[UPKG_MAX_NAME_SIZE];	/* unreal class */
+	char order[UPKG_MAX_ORDERS * 10];	/* order of the header */
 };
 
 struct unreal_pkg_object_hdr {
-	char type_str[4];	// type string of the object type
-	char object_sig[5];	// sig of the object data (if exists)
-	int sig_offset;		// offset in object that object_sig occurs
-	char desc[33];		// description of the object
+	char type_str[4];	/* type string of the object type */
+	char object_sig[5];	/* sig of the object data (if exists) */
+	int sig_offset;		/* offset in object that object_sig occurs */
+	char desc[33];		/* description of the object */
 };
 
 typedef struct unreal_pkg_hdr upkg_hdr;

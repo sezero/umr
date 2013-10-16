@@ -3,20 +3,20 @@
 #PROFILE = 1
 #DEBUG = 1
 
-EXECNAME = umr
+BINARY = umr
 GLOBALDEPS = Makefile umr.h
 OBJS = main.o unrealfmt.o unrealfmtdata.o
 
 CC = gcc
-CFLAGS = -Wall
 
+CFLAGS = -Wall
 ifdef DEBUG
-CFLAGS += -g
+CFLAGS+= -g
 else
 ifdef PROFILE
-CFLAGS += -p
+CFLAGS+= -p
 else
-CFLAGS += -O2
+CFLAGS+= -O2
 endif
 endif
 
@@ -24,15 +24,15 @@ endif
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 all: $(OBJS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $(EXECNAME) $(OBJS)
-    
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $(BINARY) $(OBJS)
+
 clean:
-	@rm -f *.o *~
+	rm -f *.o
 
-realclean: clean
-	@rm -f $(EXECNAME)
-
+distclean: clean
+	rm -f $(BINARY)
 
 main.o: $(GLOBALDEPS)
 unrealfmt.o: $(GLOBALDEPS) urf.h
 unrealfmtdata.o: $(GLOBALDEPS) urf.h
+

@@ -19,6 +19,7 @@ int main(int argc, char *argv[])
 	if (argc > 2)
 		printf("s\n\n");
 	else	printf("\n\n");
+
 	j = 0;
 
 	for (c = 1; c < argc; c++) {
