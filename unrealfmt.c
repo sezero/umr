@@ -423,6 +423,7 @@ static void get_names(void)
 		}
 
 		strncpy(names[i].name, str, UPKG_MAX_NAME_SIZE);
+		names[i].name[UPKG_MAX_NAME_SIZE - 1] = '\0';
 
 		names[i].flags = get_s32(&readbuf[idx], &idx);
 
@@ -593,7 +594,13 @@ static void check_type(int e, int d)
 	fseek(file, exports[e].object_offset, SEEK_SET);
 	fread((void *) readbuf, 100, 1, file);
 
-	if (!strcmp(names[exports[e].type_name].name, "mp2") &&
+	i = exports[e].type_name;
+	if (i < 0 || i >= hdr->name_count) {
+		exports[e].type_name = -1;
+		return;
+	}
+
+	if (!strcmp(names[i].name, "mp2") &&
 	    (hdr->file_version == 75 || hdr->file_version == 76)) {
 		unsigned char *p = (unsigned char *)readbuf;
 		uint16_t u = ((p[0] << 8) | p[1]) & 0xFFFE;
