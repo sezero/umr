@@ -273,7 +273,7 @@ static int set_classname(int idx, int c_idx) {
     do {
 	if (i < 0) {
 	    i = import_index(i);
-	    if (i < 0) break;/* this does happen */
+	    if (i < 0) break;
 	    print_import(i);
 	    if (!strcmp(names[imports[i].class_name].name, "Class")) {
 		exports[idx].class_name = imports[i].object_name;
@@ -281,13 +281,15 @@ static int set_classname(int idx, int c_idx) {
 	    }
 
 	    next = imports[i].package_index;
+	    if (i == -next - 1) break;/* endless loop with UnrealShare.u */
 	}
 
 	if (i > 0) {
 	    i = export_index(i);
-	    if (i < 0) break;/* this does happen */
+	    if (i < 0) break;
 	    print_export(i);
 	    next = exports[i].class_index;
+	    if (i ==  next - 1) break;/* endless loop with UnrealShare.u */
 	} else {
 	    break;
 	}
@@ -306,7 +308,7 @@ static int set_pkgname(int idx, int c_idx) {
 
     do {
 	if (i < 0) {
-	    i = import_index(i);/* this does happen */
+	    i = import_index(i);
 	    if (i < 0) break;
 	    print_import(i);
 	    if (!strcmp(names[imports[i].class_name].name, "Package")) {
@@ -315,14 +317,16 @@ static int set_pkgname(int idx, int c_idx) {
 	    }
 
 	    next = imports[i].package_index;
+	    if (i == -next - 1) break;/* endless loop with UnrealShare.u */
 	}
 
 	if (i > 0) {
 	    i = export_index(i);
-	    if (i < 0) break;/* this does happen */
+	    if (i < 0) break;
 	    print_export(i);
 
 	    next = exports[i].class_index;
+	    if (i ==  next - 1) break;/* endless loop with UnrealShare.u */
 	} else {
 	    break;
 	}
