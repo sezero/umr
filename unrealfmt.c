@@ -245,7 +245,9 @@ static char *get_string(const char *addr, int count, int *pos)
 static int export_index(int i)
 {
 	if (i > 0) {
-		return i - 1;
+		int j = i - 1;
+		if (j < hdr->export_count)
+			return j;
 	}
 
 	return -1;
@@ -254,7 +256,9 @@ static int export_index(int i)
 static int import_index(int i)
 {
 	if (i < 0) {
-		return -i - 1;
+		int j = -i - 1;
+		if (j < hdr->import_count)
+			return j;
 	}
 
 	return -1;
@@ -269,6 +273,7 @@ static int set_classname(int idx, int c_idx) {
     do {
 	if (i < 0) {
 	    i = import_index(i);
+	    if (i < 0) break;/* this does happen */
 	    print_import(i);
 	    if (!strcmp(names[imports[i].class_name].name, "Class")) {
 		exports[idx].class_name = imports[i].object_name;
@@ -280,6 +285,7 @@ static int set_classname(int idx, int c_idx) {
 
 	if (i > 0) {
 	    i = export_index(i);
+	    if (i < 0) break;/* this does happen */
 	    print_export(i);
 	    next = exports[i].class_index;
 	} else {
@@ -300,7 +306,8 @@ static int set_pkgname(int idx, int c_idx) {
 
     do {
 	if (i < 0) {
-	    i = import_index(i);
+	    i = import_index(i);/* this does happen */
+	    if (i < 0) break;
 	    print_import(i);
 	    if (!strcmp(names[imports[i].class_name].name, "Package")) {
 		exports[idx].package_name = imports[i].object_name;
@@ -312,6 +319,7 @@ static int set_pkgname(int idx, int c_idx) {
 
 	if (i > 0) {
 	    i = export_index(i);
+	    if (i < 0) break;/* this does happen */
 	    print_export(i);
 
 	    next = exports[i].class_index;
