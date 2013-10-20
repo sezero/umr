@@ -599,13 +599,12 @@ static void check_type(int e, int d)
 		return;
 	}
 
-#if 0 /* !! FIXME !! (Harry Potter and the Chamber of Secrets) */
+	/* !! FIXME !! -- Harry Potter and the Chamber of Secrets */
 	if (!strcmp(names[i].name, "XA") && hdr->file_version == 79) {
 		if (strcmp(export_desc[d].order, "FjFn3j3j3j3j3j3j3sFd") != 0)
 			exports[e].type_name = -1;
 		return;
 	}
-#endif
 
 	if (!strcmp(names[i].name, "mp2") &&
 	    (hdr->file_version == 75 || hdr->file_version == 76)) {

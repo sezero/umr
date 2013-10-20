@@ -33,6 +33,8 @@ Supported UAX files:
   and Adventure Pinball: Forgotten Island  are extracted successfully.
 - Harry Potter and the Philosopher's Stone mpeg layer II format sound
   extracts successfully.
+- XA-compressed sounds of Harry Potter and the Chamber of Secrets are
+  dumped from the packages. (experimental yet.)
 
 Known problems:
 ---------------
