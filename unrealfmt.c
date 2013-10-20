@@ -523,7 +523,6 @@ static void get_type(const char *buf, int e, int d)
 {
 	int i, idx, c;
 	int32_t tmp = 0;
-	/*char *chtmp;*/
 
 	idx = 0;
 
@@ -543,12 +542,10 @@ static void get_type(const char *buf, int e, int d)
 			break;
 		case UPKG_DATA_ASCIC:
 			c = get_s8(&buf[idx], &idx);
-			/*chtmp =*/
-			    get_string(&buf[idx], c, &idx);
+			get_string(&buf[idx], c, &idx);
 			break;
 		case UPKG_DATA_ASCIZ:
-			/*chtmp =*/
-			    get_string(&buf[idx], UPKG_NAME_NOCOUNT, &idx);
+			get_string(&buf[idx], UPKG_NAME_NOCOUNT, &idx);
 			break;
 		case UPKG_OBJ_JUNK:	/* do nothing */
 			break;
@@ -561,9 +558,7 @@ static void get_type(const char *buf, int e, int d)
 			exports[e].object_size = tmp;
 			break;
 		default:
-			printf
-			    ("Unknown datatype/operation listed for export #%d!\n",
-			     e);
+			fprintf(stderr, "Unknown datatype/operation listed for export #%d\n", e);
 			exports[e].type_name = -1;
 			return;
 		}
@@ -603,6 +598,14 @@ static void check_type(int e, int d)
 		exports[e].type_name = -1;
 		return;
 	}
+
+#if 0 /* !! FIXME !! (Harry Potter and the Chamber of Secrets) */
+	if (!strcmp(names[i].name, "XA") && hdr->file_version == 79) {
+		if (strcmp(export_desc[d].order, "FjFn3j3j3j3j3j3j3sFd") != 0)
+			exports[e].type_name = -1;
+		return;
+	}
+#endif
 
 	if (!strcmp(names[i].name, "mp2") &&
 	    (hdr->file_version == 75 || hdr->file_version == 76)) {
@@ -645,7 +648,7 @@ static void get_types(void)
 			check_type(i, j);
 
 			if (exports[i].type_name == -1 &&
-			    hdr->file_version >= 80) {
+			    hdr->file_version >= 79) {
 			/* Undying / Mobile Forces order difference?
 			 * see if there is an alternative order for
 			 * the same file version/class combination */
@@ -830,6 +833,12 @@ int upkg_export_dump(const char *filename, int idx)
 		diff =
 		    fread(buffer, 1, ((count > 4096) ? 4096 : count),
 			  file);
+		if (diff == 0) {
+			count = exports[idx].serial_size - count;
+			fprintf(stderr, "bad read: wrote %d, expected %d bytes\n",
+				count, exports[idx].object_size);
+			break;
+		}
 		fwrite(buffer, 1, diff, out);
 		count -= diff;
 	} while (count > 0);
@@ -868,6 +877,12 @@ int upkg_object_dump(const char *filename, int idx)
 		diff =
 		    fread(buffer, 1, ((count > 4096) ? 4096 : count),
 			  file);
+		if (diff == 0) {
+			count = exports[idx].object_size - count;
+			fprintf(stderr, "bad read: wrote %d, expected %d bytes\n",
+				count, exports[idx].object_size);
+			break;
+		}
 		fwrite(buffer, 1, diff, out);
 		count -= diff;
 	} while (count > 0);

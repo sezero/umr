@@ -54,6 +54,11 @@ const upkg_export_hdr export_desc[] = {
 	{83, "Sound", "FjFn3j3j3j3j3j3j3j3sFd"},
 	{85, "Sound", "FjFn3j3j3j3j3j3j3j3sFd"},
 
+/* Harry Potter and the Chamber of Secrets */
+/*  (extra dwords are unknown,  marked as junk for now..) */
+/*  FIXME: only WAVE. what about those "XA" stuff there?? */
+	{79, "Sound", "FjFn3j3j3j3j3j3j3sFd"},
+
 /* Mobile Forces */
 	{80, "Sound", "FjFn3sFd"},
 	{81, "Sound", "FjFn3sFd"},
