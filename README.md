@@ -16,6 +16,8 @@ Changes since the original v0.3:
   music and sound files.
 - support for MP2 format music and sound extraction from v75/76 files
   (Harry Potter and the Philosopher's Stone.)
+- support for music/sound extraction from unreal 1997/98 beta version,
+  i.e. uax/umx package versions 35, 37, 40 and 41.
 - Several code cleanups.
 
 Supported UMX files:

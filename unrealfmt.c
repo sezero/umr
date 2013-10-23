@@ -477,7 +477,9 @@ static void get_exports(void)
 		fread(readbuf, 1, 40, file);
 
 		exports[i].class_index = get_fci(&readbuf[idx], &idx);
-		exports[i].package_index = get_s32(&readbuf[idx], &idx);
+		if (hdr->file_version >= 60)
+			exports[i].package_index = get_s32(&readbuf[idx], &idx);
+		else	exports[i].package_index = 0;
 		exports[i].super_index = get_fci(&readbuf[idx], &idx);
 		exports[i].object_name = get_fci(&readbuf[idx], &idx);
 		exports[i].object_flags = get_s32(&readbuf[idx], &idx);
@@ -513,7 +515,9 @@ static void get_imports(void)
 
 		imports[i].class_package = get_fci(&readbuf[idx], &idx);
 		imports[i].class_name = get_fci(&readbuf[idx], &idx);
-		imports[i].package_index = get_s32(&readbuf[idx], &idx);
+		if (hdr->file_version >= 60)
+			imports[i].package_index = get_s32(&readbuf[idx], &idx);
+		else	imports[i].package_index = get_fci(&readbuf[idx], &idx);
 		imports[i].object_name = get_fci(&readbuf[idx], &idx);
 	}
 }

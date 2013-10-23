@@ -5,6 +5,17 @@
 
 /* version,  class_name, order */
 const upkg_export_hdr export_desc[] = {
+/* unreal beta 1998 -- two leading unknown dwords (00 00 00 00 00 00 00 00) in v35/v37.
+ * four unknown dwords (00 00 00 00 00 FF FF FF FF FF FF FF FF 00 00 00) in all v35-41. */
+	{35, "Music",   "3j3jFj3j3j3j3jFnFd"},
+	{37, "Music",   "3j3jFj3j3j3j3jFnFd"},
+	{35, "Sound",   "3j3jFj3j3j3j3jFnFd"},
+	{37, "Sound",   "3j3jFj3j3j3j3jFnFd"},
+	{40, "Music",       "Fj3j3j3j3jFnFd"},
+	{41, "Music",       "Fj3j3j3j3jFnFd"},
+	{42, "Sound",       "Fj3j3j3j3jFnFd"},
+
+/* unreal retail (pkg ver.60/61) */
 	{61, "Music",   "FjFnFd"},
 	{61, "Sound",   "FjFnFd"},
 	/*{61, "Palette", ""},*/
