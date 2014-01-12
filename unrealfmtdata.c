@@ -83,7 +83,7 @@ const upkg_export_hdr export_desc[] = {
 
 const upkg_object_hdr object_desc[] = {
 	{"s3m", "SCRM", 44, "ScreamTracker 3"},
-	{"it", "IMPM", 0, "Impluse Tracker"},
+	{"it", "IMPM", 0, "Impulse Tracker"},
 	{"xm", "Fast", 38, "FastTracker 2.0"},
 	{"WAV", "WAVE", 8, "MS PCM Sound"},
 
