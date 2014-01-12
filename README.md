@@ -8,6 +8,7 @@ The code is being fixed+updated for new compilers / platforms.
 Changes since the original v0.3:
 --------------------------------
 - Fixes for crashes with files that have big name/export/import tables.
+  Fixes export table read order.
 - Fixes for crashes when run to process multiple files.
 - Fixes for endless loops with certain upkg files.
 - Support for 64 bit systems.

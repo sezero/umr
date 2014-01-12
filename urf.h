@@ -83,8 +83,8 @@ struct unreal_pkg_hdr {
 */
 struct unreal_pkg_export_tbl {
 	int32_t class_index;	/* index, type 1 */
-	int32_t package_index;	/* index, type 1 */
 	int32_t super_index;	/* index, type 1 */
+	int32_t package_index;	/* index, type 1 */
 	int32_t object_name;	/* index, type 2 */
 	int32_t object_flags;	/* flags for the object (will be supported when I decide to code it ;-) */
 	int32_t serial_size;	/* size of export described */

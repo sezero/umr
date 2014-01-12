@@ -248,6 +248,7 @@ static int export_index(int i)
 		int j = i - 1;
 		if (j < hdr->export_count)
 			return j;
+		/* else: shouldn't happen.. */
 	}
 
 	return -1;
@@ -259,6 +260,7 @@ static int import_index(int i)
 		int j = -i - 1;
 		if (j < hdr->import_count)
 			return j;
+		/* else: shouldn't happen.. */
 	}
 
 	return -1;
@@ -273,7 +275,7 @@ static int set_classname(int idx, int c_idx) {
     do {
 	if (i < 0) {
 	    i = import_index(i);
-	    if (i < 0) break;
+	    if (i < 0) break;/* shouldn't happen.. */
 	    print_import(i);
 	    if (!strcmp(names[imports[i].class_name].name, "Class")) {
 		exports[idx].class_name = imports[i].object_name;
@@ -281,15 +283,15 @@ static int set_classname(int idx, int c_idx) {
 	    }
 
 	    next = imports[i].package_index;
-	    if (i == -next - 1) break;/* endless loop with UnrealShare.u */
+	    if (i == -next - 1) break;/* shouldn't happen.. */
 	}
 
 	if (i > 0) {
 	    i = export_index(i);
-	    if (i < 0) break;
+	    if (i < 0) break;/* shouldn't happen.. */
 	    print_export(i);
 	    next = exports[i].class_index;
-	    if (i ==  next - 1) break;/* endless loop with UnrealShare.u */
+	    if (i ==  next - 1) break;/* shouldn't happen.. */
 	} else {
 	    break;
 	}
@@ -309,7 +311,7 @@ static int set_pkgname(int idx, int c_idx) {
     do {
 	if (i < 0) {
 	    i = import_index(i);
-	    if (i < 0) break;
+	    if (i < 0) break;/* shouldn't happen.. */
 	    print_import(i);
 	    if (!strcmp(names[imports[i].class_name].name, "Package")) {
 		exports[idx].package_name = imports[i].object_name;
@@ -317,16 +319,16 @@ static int set_pkgname(int idx, int c_idx) {
 	    }
 
 	    next = imports[i].package_index;
-	    if (i == -next - 1) break;/* endless loop with UnrealShare.u */
+	    if (i == -next - 1) break;/* shouldn't happen.. */
 	}
 
 	if (i > 0) {
 	    i = export_index(i);
-	    if (i < 0) break;
+	    if (i < 0) break;/* shouldn't happen.. */
 	    print_export(i);
 
 	    next = exports[i].class_index;
-	    if (i ==  next - 1) break;/* endless loop with UnrealShare.u */
+	    if (i ==  next - 1) break;/* shouldn't happen.. */
 	} else {
 	    break;
 	}
@@ -477,10 +479,10 @@ static void get_exports(void)
 		fread(readbuf, 1, 40, file);
 
 		exports[i].class_index = get_fci(&readbuf[idx], &idx);
+		exports[i].super_index = get_fci(&readbuf[idx], &idx);
 		if (hdr->file_version >= 60)
 			exports[i].package_index = get_s32(&readbuf[idx], &idx);
 		else	exports[i].package_index = 0;
-		exports[i].super_index = get_fci(&readbuf[idx], &idx);
 		exports[i].object_name = get_fci(&readbuf[idx], &idx);
 		exports[i].object_flags = get_s32(&readbuf[idx], &idx);
 		exports[i].serial_size = get_fci(&readbuf[idx], &idx);
@@ -517,7 +519,10 @@ static void get_imports(void)
 		imports[i].class_name = get_fci(&readbuf[idx], &idx);
 		if (hdr->file_version >= 60)
 			imports[i].package_index = get_s32(&readbuf[idx], &idx);
-		else	imports[i].package_index = get_fci(&readbuf[idx], &idx);
+		else {
+			imports[i].package_index = 0;
+			get_fci(&readbuf[idx], &idx);/* ?? */
+		}
 		imports[i].object_name = get_fci(&readbuf[idx], &idx);
 	}
 }
