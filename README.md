@@ -8,16 +8,16 @@ The code is being fixed+updated for new compilers / platforms.
 Changes since the original v0.3:
 --------------------------------
 - Fixes for crashes with files that have big name/export/import tables.
-  Fixes export table read order.
+- Fixes export table read order.
 - Fixes for crashes when run to process multiple files.
 - Fixes for endless loops with certain upkg files.
 - Support for 64 bit systems.
 - Support for big endian systems.
 - Support for version 63, 65, 69, 71, 72, 73, 79, 80, 81, 83, and 85
   music and sound files.
-- support for MP2 format music and sound extraction from v75/76 files
+- Support for MP2 format music and sound extraction from v75/76 files
   (Harry Potter and the Philosopher's Stone.)
-- support for music/sound extraction from unreal 1997/98 beta version,
+- Support for music/sound extraction from unreal 1997/98 beta version,
   i.e. uax/umx package versions 35, 37, 40 and 41.
 - Several code cleanups.
 
