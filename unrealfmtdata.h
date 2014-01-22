@@ -1,10 +1,18 @@
-#include <stdio.h>
-#include <stdlib.h>
+struct _upkg_export_desc {
+	int32_t version;	/* version of pkg header this supports */
+	char class_name[UPKG_MAX_NAME_SIZE];	/* unreal class */
+	char order[UPKG_MAX_ORDERS * 10];	/* order of the header */
+};
 
-#include "urf.h"
+struct _upkg_object_desc {
+	char type_str[4];	/* type string of the object type */
+	char object_sig[5];	/* sig of the object data (if exists) */
+	int sig_offset;		/* offset in object that object_sig occurs */
+	char desc[33];		/* description of the object */
+};
 
-/* version,  class_name, order */
-const upkg_export_hdr export_desc[] = {
+/* version, class_name, order */
+static const struct _upkg_export_desc export_desc[] = {
 /* unreal beta 1998 -- two leading unknown dwords (00 00 00 00 00 00 00 00) in v35/v37.
  * four unknown dwords (81 00 00 00 00 00 FF FF FF FF FF FF FF FF 00 00) in all v35-41. */
 	{35, "Music",   "3j3j3j3j3j3jFjFnFd"},
@@ -75,7 +83,7 @@ const upkg_export_hdr export_desc[] = {
 	{0, "", ""}
 };
 
-const upkg_object_hdr object_desc[] = {
+static const struct _upkg_object_desc object_desc[] = {
 	{"s3m", "SCRM", 44, "ScreamTracker 3"},
 	{"it", "IMPM", 0, "Impulse Tracker"},
 	{"xm", "Fast", 38, "FastTracker 2.0"},

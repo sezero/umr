@@ -8,6 +8,7 @@ int main(int argc, char *argv[])
 	int i, j, c;
 	char filename[128];
 	const char *n, *t;
+	struct upkg *pkg;
 	long l;
 
 	if (argc < 2) {
@@ -20,32 +21,31 @@ int main(int argc, char *argv[])
 		printf("s\n\n");
 	else	printf("\n\n");
 
-	j = 0;
-
-	for (c = 1; c < argc; c++) {
-		if (upkg_open(argv[c]) == 0) {
+	for (j = 0, c = 1; c < argc; c++) {
+		pkg = upkg_open(argv[c]);
+		if (pkg != NULL) {
 			j++;
 			printf("%s\n", argv[c]);
 
-			for (i = 1; i < upkg_ocount() + 1; i++) {
-				t = upkg_otype(i);
-				n = upkg_oname(i);
-				l = upkg_object_size(i);
+			for (i = 1; i < upkg_ocount(pkg) + 1; i++) {
+				t = upkg_otype(pkg, i);
+				n = upkg_oname(pkg, i);
+				l = upkg_object_size(pkg, i);
 
 				if (t != NULL && l > 0) {
 					strcpy(filename, n);
 					strcat(filename, ".");
 					strcat(filename, t);
 
-					n = upkg_oclassname(i);
+					n = upkg_oclassname(pkg, i);
 					printf("%s\t(%s, %ld bytes)\n",
 						filename, n, l);
 
-					upkg_object_dump(filename, i);
+					upkg_object_dump(pkg, filename, i);
 				}
 			}
 
-			upkg_close();
+			upkg_close(pkg);
 			printf("\n");
 		}
 	}

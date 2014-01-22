@@ -1,11 +1,11 @@
 umr
 ===
 
-This is a fork of Unreal Media Ripper (UMR) v0.3 by Andy Ward.
+This is a fork of Unreal Media Ripper (UMR) by Andy Ward.
 
 The code is being fixed+updated for new compilers / platforms.
 
-Changes since the original v0.3:
+Changes since original UMR v0.3:
 --------------------------------
 - Fixes for crashes with files that have big name/export/import tables.
 - Fixes export table read order.
@@ -13,6 +13,7 @@ Changes since the original v0.3:
 - Fixes for endless loops with certain upkg files.
 - Support for 64 bit systems.
 - Support for big endian systems.
+- Made the code reentrant.
 - Support for version 63, 65, 69, 71, 72, 73, 79, 80, 81, 83, and 85
   music and sound files.
 - Support for MP2 format music and sound extraction from v75/76 files

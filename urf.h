@@ -41,7 +41,7 @@ enum upkg_flags {
 };
 
 #pragma pack(1)
-struct unreal_pkg_hdr {
+struct upkg_hdr {
 	uint32_t tag;	/* UPKG_HDR_TAG */
 	int32_t file_version;	/* 61 for original unreal */
 	int32_t pkg_flags;	/* bitflags - none needed */
@@ -73,15 +73,15 @@ struct unreal_pkg_hdr {
 /* indices have 2 types.  type 1 is harder, so I'll describe type 2 first. =)
 
   type 2 is an index into the name table (upkg_name_table).  pure and simple.
-  
+
   type 1 is an index into either the imports table, or the exports table, or NULL.
    if index == 0, you can ignore it
    if index < 0, use imports[-index - 1]
    if index > 0, use exports[index - 1]
-   
+
   type 1 is used for dependency/inheritancy info
 */
-struct unreal_pkg_export_tbl {
+struct upkg_export {
 	int32_t class_index;	/* index, type 1 */
 	int32_t super_index;	/* index, type 1 */
 	int32_t package_index;	/* index, type 1 */
@@ -96,40 +96,25 @@ struct unreal_pkg_export_tbl {
 	int32_t object_offset;	/* offset into package file that object starts */
 };
 
-struct unreal_pkg_import_tbl {
+struct upkg_import {
 	int32_t class_package;	/* index, type 2 */
 	int32_t class_name;	/* index, type 2 */
 	int32_t package_index;	/* index, type 1 */
 	int32_t object_name;	/* index, type 2 */
 };
 
-struct unreal_pkg_name_tbl {
+struct upkg_name {
 	char name[UPKG_MAX_NAME_SIZE];	/* a name */
 	int32_t flags;	/* flags for the name */
 };
 
-struct unreal_pkg_export_hdr {
-	int32_t version;	/* version of pkg header this supports */
-	char class_name[UPKG_MAX_NAME_SIZE];	/* unreal class */
-	char order[UPKG_MAX_ORDERS * 10];	/* order of the header */
+struct upkg {
+	FILE *file;
+	struct upkg_hdr *hdr;
+	struct upkg_export *exports;
+	struct upkg_import *imports;
+	struct upkg_name *names;
+	int indent_level;
 };
-
-struct unreal_pkg_object_hdr {
-	char type_str[4];	/* type string of the object type */
-	char object_sig[5];	/* sig of the object data (if exists) */
-	int sig_offset;		/* offset in object that object_sig occurs */
-	char desc[33];		/* description of the object */
-};
-
-typedef struct unreal_pkg_hdr upkg_hdr;
-typedef struct unreal_pkg_export_tbl upkg_exports;
-typedef struct unreal_pkg_import_tbl upkg_imports;
-typedef struct unreal_pkg_name_tbl upkg_names;
-typedef struct unreal_pkg_export_hdr upkg_export_hdr;
-typedef struct unreal_pkg_object_hdr upkg_object_hdr;
-
-
-extern const upkg_export_hdr export_desc[];
-extern const upkg_object_hdr object_desc[];
 
 #endif	/* _URF_H */
