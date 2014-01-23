@@ -59,8 +59,7 @@ static void print_pkg_hdr(struct upkg *pkg)
 	   pkg->hdr->export_count,
 	   pkg->hdr->export_offset,
 	   pkg->hdr->import_count,
-	   pkg->hdr->import_offset
-    );
+	   pkg->hdr->import_offset);
 
     if (pkg->hdr->file_version < 68) {
 	printf ("heritage_count  = %d\n"
@@ -68,9 +67,21 @@ static void print_pkg_hdr(struct upkg *pkg)
 		pkg->hdr->heritage_count,
 		pkg->hdr->heritage_offset);
     } else {
-	/* print the guid and generation history, too? */
+	printf ("guid            = 0x%08x %08x %08x %08x\n",
+		pkg->hdr->guid[0], pkg->hdr->guid[1],
+		pkg->hdr->guid[2], pkg->hdr->guid[3]);
 	printf ("generation_count= %d\n",
 		pkg->hdr->generation_count);
+	if (pkg->hdr->generation_count > 0) {
+	    int i;
+	    for (i = 0; i < pkg->hdr->generation_count; i++) {
+		printf ("generation #%d:\n"
+			"   export_count = %d\n"
+			"   name_count   = %d\n",
+			i, pkg->hdr->gen[i].export_count,
+			pkg->hdr->gen[i].name_count);
+	    }
+	}
     }
 }
 
@@ -358,25 +369,39 @@ static int load_upkg(struct upkg *pkg)
 		swp[i] = READ_INT32(p);
 	}
 
-	if (pkg->hdr->tag != UPKG_HDR_TAG) {
+	if (pkg->hdr->tag != UPKG_HDR_TAG)
 		return -1;
-	}
 	if (pkg->hdr->name_count	< 0 ||
 	    pkg->hdr->name_offset	< 0 ||
 	    pkg->hdr->export_count	< 0 ||
 	    pkg->hdr->export_offset	< 0 ||
 	    pkg->hdr->import_count	< 0 ||
-	    pkg->hdr->import_offset	< 0) {
+	    pkg->hdr->import_offset	< 0)
 		return -1;
-	}
 
 	if (pkg->hdr->file_version >= 68) {
 		/* move data to correct members */
 		memmove(&pkg->hdr->guid[0], &pkg->hdr->heritage_count, 20);
+		/* read the generation history */
+		if (pkg->hdr->generation_count > 0) {
+			pkg->hdr->gen = (struct _genhist *)
+			    calloc(pkg->hdr->generation_count, sizeof(struct _genhist));
+			if (pkg->hdr->gen == NULL)
+				return -1;
+			fseek(pkg->file, UPKG_HDR_SIZE - 8, SEEK_SET);
+			p = (unsigned char *) &pkg->hdr->heritage_count;
+			for (i = 0; i < pkg->hdr->generation_count; i++) {
+				fread(p, 4, 1, pkg->file);
+				pkg->hdr->gen[i].export_count = READ_INT32(p);
+				fread(p, 4, 1, pkg->file);
+				pkg->hdr->gen[i].name_count = READ_INT32(p);
+			}
+		}
 		pkg->hdr->heritage_count = 0;
 		pkg->hdr->heritage_offset = 0;
 	}
 
+	printf("Package header:\n");
 	print_pkg_hdr(pkg);
 
 	for (i = 0; export_desc[i].version; i++) {
@@ -416,6 +441,7 @@ static void get_names(struct upkg *pkg)
 	nofs = pkg->hdr->name_offset;
 	idx = 0;
 
+	printf("Name table:\n");
 	for (i = 0; i < pkg->hdr->name_count; i++) {
 		nofs += idx;
 		idx = 0;
@@ -667,6 +693,7 @@ static void get_types(struct upkg *pkg)
 			pkg->exports[i].type_name = -1;
 		}
 	}
+	printf("\n");
 }
 
 

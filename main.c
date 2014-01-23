@@ -26,14 +26,13 @@ int main(int argc, char *argv[])
 		pkg = upkg_open(argv[c]);
 		if (pkg != NULL) {
 			j++;
-			printf("%s\n", argv[c]);
 
 			for (i = 1; i < upkg_ocount(pkg) + 1; i++) {
 				t = upkg_otype(pkg, i);
 				n = upkg_oname(pkg, i);
 				l = upkg_object_size(pkg, i);
 
-				if (t != NULL && l > 0) {
+				if (t != NULL && n != NULL && l > 0) {
 					strcpy(filename, n);
 					strcat(filename, ".");
 					strcat(filename, t);
