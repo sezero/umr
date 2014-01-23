@@ -34,8 +34,8 @@ typedef int32_t fci_t;		/* FCompactIndex */
 
 /* upkg_flags: */
 #define RF_Transactional	0x00000001
-#define RF_SourceModified	0x00000002
 #define RF_Public		0x00000004
+#define RF_SourceModified	0x00000020
 #define RF_LoadForClient	0x00010000
 #define RF_LoadForServer	0x00020000
 #define RF_LoadForEdit		0x00040000
