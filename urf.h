@@ -1,12 +1,18 @@
 #ifndef _URF_H
 #define _URF_H
 
+#include <stddef.h>
 #include <stdint.h>
 #include "umr.h"
 
 
 /* orig. documentation by Tim Sweeney was at
- * http://unreal.epicgames.com/Packages.htm  */
+ * http://unreal.epicgames.com/Packages.htm
+ * also see Unreal Wiki at
+ * http://wiki.beyondunreal.com/Legacy:Package_File_Format
+ */
+
+typedef int32_t fci_t;		/* FCompactIndex */
 
 #define UPKG_MAX_NAME_SIZE	64
 #define UPKG_MAX_ORDERS		10
@@ -24,27 +30,28 @@
 #define UPKG_EXP_SIZE	's'
 #define UPKG_OBJ_SIZE	'd'
 
-#define UPKG_NAME_NOCOUNT	-1
+#define UPKG_HDR_TAG		0x9e2a83c1
 
-#define UPKG_HDR_TAG	0x9e2a83c1
+/* upkg_flags: */
+#define RF_Transactional	0x00000001
+#define RF_SourceModified	0x00000002
+#define RF_Public		0x00000004
+#define RF_LoadForClient	0x00010000
+#define RF_LoadForServer	0x00020000
+#define RF_LoadForEdit		0x00040000
+#define RF_Standalone		0x00080000
+#define RF_HasStack		0x02000000
+#define RF_Intrinsic		0x04000000
 
-enum upkg_flags {
-    RF_Transactional	= 0x00000001,
-    RF_SourceModified	= 0x00000002,
-    RF_Public		= 0x00000004,
-    RF_LoadForClient	= 0x00010000,
-    RF_LoadForServer	= 0x00020000,
-    RF_LoadForEdit	= 0x00040000,
-    RF_Standalone	= 0x00080000,
-    RF_HasStack		= 0x02000000,
-    RF_Intrinsic	= 0x04000000
+struct _genhist {	/* for upkg versions >= 68 */
+	int32_t export_count;
+	int32_t name_count;
 };
 
-#pragma pack(1)
 struct upkg_hdr {
 	uint32_t tag;	/* UPKG_HDR_TAG */
-	int32_t file_version;	/* 61 for original unreal */
-	int32_t pkg_flags;	/* bitflags - none needed */
+	int32_t file_version;
+	uint32_t pkg_flags;
 	int32_t name_count;	/* number of names in name table (>= 0) */
 	int32_t name_offset;		/* offset to name table  (>= 0) */
 	int32_t export_count;	/* num. exports in export table  (>= 0) */
@@ -56,58 +63,53 @@ struct upkg_hdr {
 	 * only with versions < 68. */
 	int32_t heritage_count;
 	int32_t heritage_offset;
-#if 0
 	/* with versions >= 68:  a GUID, a dword for generation count
 	 * and export_count and name_count dwords for each generation: */
 	uint32_t guid[4];
 	int32_t generation_count;
-	struct _genhist {
-		int32_t export_count;
-		int32_t name_count;
-	} genhist[0/* generation_count */];
-#endif
+#define UPKG_HDR_SIZE 64			/* 64 bytes up until here */
+	struct _genhist *gen;
 };
-#pragma pack()
+/* compile time assert for upkg_hdr size */
+typedef int _check_hdrsize[2 * (offsetof(struct upkg_hdr, gen) == UPKG_HDR_SIZE) - 1];
 
 
-/* indices have 2 types.  type 1 is harder, so I'll describe type 2 first. =)
-
-  type 2 is an index into the name table (upkg_name_table).  pure and simple.
-
-  type 1 is an index into either the imports table, or the exports table, or NULL.
-   if index == 0, you can ignore it
-   if index < 0, use imports[-index - 1]
-   if index > 0, use exports[index - 1]
-
-  type 1 is used for dependency/inheritancy info
-*/
+/* ObjectReference is like a pointer.
+ *   0 : ignore (NULL)
+ * < 0 : imports[-index - 1]
+ * > 0 : exports[ index - 1]
+ */
 struct upkg_export {
-	int32_t class_index;	/* index, type 1 */
-	int32_t super_index;	/* index, type 1 */
-	int32_t package_index;	/* index, type 1 */
-	int32_t object_name;	/* index, type 2 */
-	int32_t object_flags;	/* flags for the object (will be supported when I decide to code it ;-) */
-	int32_t serial_size;	/* size of export described */
-	int32_t serial_offset;	/* start of the export in the the package file (offset from beginning of file) */
-	int32_t class_name;	/* index, type 2 (the name of the object class) */
-	int32_t package_name;	/* index, type 2 (the name of the object package) */
-	int32_t type_name;	/* index, type 2 (the name of the object type) */
-	int32_t object_size;	/* bytes of data in object */
-	int32_t object_offset;	/* offset into package file that object starts */
+	fci_t class_index;	/* ObjectReference */
+	fci_t super_index;	/* ObjectReference */
+	int32_t package_index;	/* ObjectReference (not in unreal beta, i.e. file_version < 60) */
+	fci_t object_name;
+	uint32_t object_flags;
+	fci_t serial_size;
+	fci_t serial_offset;	/* if serial_size > 0 */
+
+	/* the rest not stored in pkg but generated at runtime */
+	int32_t class_name;
+	int32_t package_name;
+	int32_t type_name;
+	int32_t object_size;
+	int32_t object_offset;
 };
 
 struct upkg_import {
-	int32_t class_package;	/* index, type 2 */
-	int32_t class_name;	/* index, type 2 */
-	int32_t package_index;	/* index, type 1 */
-	int32_t object_name;	/* index, type 2 */
+	fci_t class_package;
+	fci_t class_name;
+	int32_t package_index;	/* ObjectReference (unreal beta has an FCompactIndex here???) */
+	fci_t object_name;
 };
 
+#define UPKG_NAME_NOCOUNT	-1
 struct upkg_name {
-	char name[UPKG_MAX_NAME_SIZE];	/* a name */
-	int32_t flags;	/* flags for the name */
+	char name[UPKG_MAX_NAME_SIZE];
+	uint32_t flags;
 };
 
+/* opaque upkg object that upkg_open() returns */
 struct upkg {
 	FILE *file;
 	struct upkg_hdr *hdr;

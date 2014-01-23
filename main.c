@@ -22,6 +22,7 @@ int main(int argc, char *argv[])
 	else	printf("\n\n");
 
 	for (j = 0, c = 1; c < argc; c++) {
+		printf("%s:\n", argv[c]);
 		pkg = upkg_open(argv[c]);
 		if (pkg != NULL) {
 			j++;
@@ -47,6 +48,9 @@ int main(int argc, char *argv[])
 
 			upkg_close(pkg);
 			printf("\n");
+		}
+		else {
+			printf("Failed opening or not an upkg\n\n");
 		}
 	}
 

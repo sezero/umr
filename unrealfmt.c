@@ -7,72 +7,77 @@
 #include "unrealfmtdata.h"
 
 
-static char *print_flags(int flags, char *buf)
+static void print_flags(uint32_t flags)
 {
-    buf[0] = '\0';
-
     if (flags & RF_Transactional)
-	strcat(buf, "Transactional");
+	printf("Transactional");
 
     if (flags & RF_SourceModified)
-	strcat(buf, " SrcModified");
+	printf(" SrcModified");
 
     if (flags & RF_Public)
-	strcat(buf, " Public");
+	printf(" Public");
 
     if (flags & RF_LoadForClient)
-	strcat(buf, " LFClient");
+	printf(" LFClient");
 
     if (flags & RF_LoadForServer)
-	strcat(buf, " LFServer");
+	printf(" LFServer");
 
     if (flags & RF_LoadForEdit)
-	strcat(buf, " LFEdit");
+	printf(" LFEdit");
 
     if (flags & RF_Standalone)
-	strcat(buf, " Standalone");
+	printf(" Standalone");
 
     if (flags & RF_HasStack)
-	strcat(buf, " HasStack");
+	printf(" HasStack");
 
     if (flags & RF_Intrinsic)
-	strcat(buf, " Intrinsic");
-
-    return buf;
+	printf(" Intrinsic");
 }
 
 static void print_pkg_hdr(struct upkg *pkg)
 {
-    char buf[128];
     printf("tag             = 0x%08x\n"
-	   "file_version    = %d\n"
-	   "pkg_flags       = %s\n"
-	   "name_count      = %d\n"
+	   "file_version    = %d\n",
+	   pkg->hdr->tag,
+	   pkg->hdr->file_version);
+
+    printf("pkg_flags       = ");
+    print_flags(pkg->hdr->pkg_flags);
+    printf("\n");
+
+    printf("name_count      = %d\n"
 	   "name_offset     = 0x%08x\n"
 	   "export_count    = %d\n"
 	   "export_offset   = 0x%08x\n"
 	   "import_count    = %d\n"
-	   "import_offset   = 0x%08x\n"
-	   "heritage_count  = %d\n"
-	   "heritage_offset = 0x%08x\n",
-	   pkg->hdr->tag,
-	   pkg->hdr->file_version,
-	   print_flags(pkg->hdr->pkg_flags, buf),
+	   "import_offset   = 0x%08x\n",
 	   pkg->hdr->name_count,
 	   pkg->hdr->name_offset,
 	   pkg->hdr->export_count,
 	   pkg->hdr->export_offset,
 	   pkg->hdr->import_count,
-	   pkg->hdr->import_offset,
-	   pkg->hdr->heritage_count,
-	   pkg->hdr->heritage_offset
+	   pkg->hdr->import_offset
     );
+
+    if (pkg->hdr->file_version < 68) {
+	printf ("heritage_count  = %d\n"
+		"heritage_offset = 0x%08x\n",
+		pkg->hdr->heritage_count,
+		pkg->hdr->heritage_offset);
+    } else {
+	/* print the guid and generation history, too? */
+	printf ("generation_count= %d\n",
+		pkg->hdr->generation_count);
+    }
 }
 
 static void print_name(struct upkg *pkg, int i)
 {
-    char buf[128];
-    printf("%d: %s\t%s", i, pkg->names[i].name, print_flags(pkg->names[i].flags, buf));
+    printf("%d: %s\t", i, pkg->names[i].name);
+    print_flags(pkg->names[i].flags);
 }
 
 static void indent(int level)
@@ -86,7 +91,6 @@ static void indent(int level)
 static void print_export(struct upkg *pkg, int idx)
 {
     int level, tmp;
-    char buf[128];
 
     level = pkg->indent_level++;
 
@@ -110,7 +114,9 @@ static void print_export(struct upkg *pkg, int idx)
     printf("object_name   = %s\n", pkg->names[tmp].name);
 
     indent(level);
-    printf("object_flags  = %s\n", print_flags(pkg->exports[idx].object_flags, buf));
+    printf("object_flags  = ");
+    print_flags(pkg->exports[idx].object_flags);
+    printf("\n");
 
     indent(level);
     printf("serial_size   = %d\n", pkg->exports[idx].serial_size);
@@ -161,8 +167,10 @@ static void print_import(struct upkg *pkg, int idx)
 /* decode an FCompactIndex.
  * original documentation by Tim Sweeney was at
  * http://unreal.epicgames.com/Packages.htm
+ * also see Unreal Wiki:
+ * http://wiki.beyondunreal.com/Legacy:Package_File_Format/Data_Details
  */
-static int32_t get_fci(const char *in, int *pos)
+static fci_t get_fci(const char *in, int *pos)
 {
 	int32_t a;
 	int size;
@@ -206,6 +214,13 @@ static int32_t get_s32(const void *addr, int *pos)
 	const unsigned char *p = (const unsigned char *)addr;
 	*pos += 4;
 	return (int32_t)READ_INT32(p);
+}
+
+static uint32_t get_u32(const void *addr, int *pos)
+{
+	const unsigned char *p = (const unsigned char *)addr;
+	*pos += 4;
+	return (uint32_t)READ_INT32(p);
 }
 
 static int32_t get_s16(const void *addr, int *pos)
@@ -339,21 +354,30 @@ static int load_upkg(struct upkg *pkg)
 	/* byte swap the header (all members are 32 bit LE values) */
 	p = (unsigned char *) pkg->hdr;
 	swp = (uint32_t *) pkg->hdr;
-	for (i = 0; i < (int)sizeof(struct upkg_hdr)/4; i++, p += 4) {
+	for (i = 0; i < UPKG_HDR_SIZE/4; i++, p += 4) {
 		swp[i] = READ_INT32(p);
 	}
 
-	print_pkg_hdr(pkg);
-
-	if (pkg->hdr->tag != UPKG_HDR_TAG)
+	if (pkg->hdr->tag != UPKG_HDR_TAG) {
 		return -1;
+	}
 	if (pkg->hdr->name_count	< 0 ||
 	    pkg->hdr->name_offset	< 0 ||
 	    pkg->hdr->export_count	< 0 ||
 	    pkg->hdr->export_offset	< 0 ||
 	    pkg->hdr->import_count	< 0 ||
-	    pkg->hdr->import_offset	< 0)
+	    pkg->hdr->import_offset	< 0) {
 		return -1;
+	}
+
+	if (pkg->hdr->file_version >= 68) {
+		/* move data to correct members */
+		memmove(&pkg->hdr->guid[0], &pkg->hdr->heritage_count, 20);
+		pkg->hdr->heritage_count = 0;
+		pkg->hdr->heritage_offset = 0;
+	}
+
+	print_pkg_hdr(pkg);
 
 	for (i = 0; export_desc[i].version; i++) {
 		if (pkg->hdr->file_version == export_desc[i].version) {
@@ -406,7 +430,7 @@ static void get_names(struct upkg *pkg)
 			get_string(&readbuf[idx], UPKG_NAME_NOCOUNT, &idx, pkg->names[i].name);
 		}
 
-		pkg->names[i].flags = get_s32(&readbuf[idx], &idx);
+		pkg->names[i].flags = get_u32(&readbuf[idx], &idx);
 
 		print_name(pkg, i);
 		printf("\n");
@@ -418,7 +442,7 @@ static void get_names(struct upkg *pkg)
 	printf("\n");
 }
 
-/* load the export table (which is at the end of the file... go figure) */
+/* load the export table (which is at the end of the file) */
 static void get_exports_cpnames(struct upkg *pkg, int idx) {
     int x;
 
@@ -459,7 +483,7 @@ static void get_exports(struct upkg *pkg)
 			pkg->exports[i].package_index = get_s32(&readbuf[idx], &idx);
 		else	pkg->exports[i].package_index = 0;
 		pkg->exports[i].object_name = get_fci(&readbuf[idx], &idx);
-		pkg->exports[i].object_flags = get_s32(&readbuf[idx], &idx);
+		pkg->exports[i].object_flags = get_u32(&readbuf[idx], &idx);
 		pkg->exports[i].serial_size = get_fci(&readbuf[idx], &idx);
 
 		if (pkg->exports[i].serial_size > 0) {
@@ -667,7 +691,7 @@ struct upkg *upkg_open(const char *filename)
 	pkg->hdr = (struct upkg_hdr *) calloc(1, sizeof(struct upkg_hdr));
 	if (!pkg->hdr) goto err;
 
-	if (fread(pkg->hdr, 1, sizeof(struct upkg_hdr), file) < sizeof(struct upkg_hdr))
+	if (fread(pkg->hdr, 1, UPKG_HDR_SIZE, file) < UPKG_HDR_SIZE)
 		goto err;
 
 	if (load_upkg(pkg) != 0)
@@ -689,6 +713,7 @@ void upkg_close(struct upkg *pkg)
 	if (!pkg) return;
 
 	if (pkg->file) fclose(pkg->file);
+	if (pkg->hdr->gen) free(pkg->hdr->gen);
 	if (pkg->hdr) free(pkg->hdr);
 	if (pkg->imports) free(pkg->imports);
 	if (pkg->exports) free(pkg->exports);
