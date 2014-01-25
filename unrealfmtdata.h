@@ -1,14 +1,15 @@
 struct _upkg_export_desc {
-	int32_t version;	/* version of pkg header this supports */
-	char class_name[UPKG_MAX_NAME_SIZE];	/* unreal class */
-	char order[UPKG_MAX_ORDERS * 10];	/* order of the header */
+	int32_t version;	/* expected pkg version for this order */
+	const char *class_name;	/* unreal class */	/* [UPKG_MAX_NAME_SIZE] */
+	const char *order;	/* order for export */	/* [UPKG_MAX_ORDERS*10] */
 };
 
 struct _upkg_object_desc {
-	char type_str[4];	/* type string of the object type */
-	char object_sig[5];	/* sig of the object data (if exists) */
-	int sig_offset;		/* offset in object that object_sig occurs */
-	char desc[33];		/* description of the object */
+	const char *type_str;	/* type string of the object type */
+	const char *sig;	/* sig of the object data (if exists) */
+	long sig_offset;	/* offset of the sig in object */
+				/* NOTE: check_type() expects ofs + strlen(sig) < 96. */
+	const char *desc;
 };
 
 /* version, class_name, order */
@@ -84,6 +85,7 @@ static const struct _upkg_export_desc export_desc[] = {
 };
 
 static const struct _upkg_object_desc object_desc[] = {
+/* NOTE: check_type() expects ofs + strlen(sig) < 96. */
 	{"s3m", "SCRM", 44, "ScreamTracker 3"},
 	{"it", "IMPM", 0, "Impulse Tracker"},
 	{"xm", "Fast", 38, "FastTracker 2.0"},

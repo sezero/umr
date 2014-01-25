@@ -622,11 +622,11 @@ static int get_types_isgood(struct upkg *pkg, int idx, int start)
 
 static void check_type(struct upkg *pkg, int e, int d)
 {
-	int i, s, l;
-	char readbuf[101];
+	long i, s, l;
+	char readbuf[96], c;
 
 	fseek(pkg->file, pkg->exports[e].object_offset, SEEK_SET);
-	fread((void *) readbuf, 100, 1, pkg->file);
+	fread(readbuf, 96, 1, pkg->file);
 
 	i = pkg->exports[e].type_name;
 	if (i < 0 || i >= pkg->hdr->name_count) {
@@ -653,15 +653,14 @@ static void check_type(struct upkg *pkg, int e, int d)
 
 	for (i = 0; object_desc[i].sig_offset != -1; i++) {
 		s = object_desc[i].sig_offset;
-		l = strlen(object_desc[i].object_sig);
-		readbuf[100] = readbuf[s + l];
+		l = strlen(object_desc[i].sig);
+		c = readbuf[s + l];
 		readbuf[s + l] = 0;
 
-		if (!strcmp(&readbuf[s], object_desc[i].object_sig)) {
+		if (!strcmp(&readbuf[s], object_desc[i].sig))
 			return;
-		}
 
-		readbuf[s + l] = readbuf[100];
+		readbuf[s + l] = c;
 	}
 
 	pkg->exports[e].type_name = -1;
@@ -677,7 +676,7 @@ static void get_types(struct upkg *pkg)
 		j = get_types_isgood(pkg, i, next);
 		if (j != -1) {
 			fseek(pkg->file, pkg->exports[i].serial_offset, SEEK_SET);
-			fread((void *) readbuf, 4, UPKG_MAX_ORDERS, pkg->file);
+			fread(readbuf, 4, UPKG_MAX_ORDERS, pkg->file);
 			get_type(pkg, readbuf, i, j);
 			check_type(pkg, i, j);
 
@@ -751,7 +750,6 @@ void upkg_close(struct upkg *pkg)
 int32_t upkg_ocount(struct upkg *pkg)
 {
 	if (!pkg) return -1;
-
 	return pkg->hdr->export_count;
 }
 
@@ -760,7 +758,6 @@ const char *upkg_oname(struct upkg *pkg, int idx)
 	if (!pkg) return NULL;
 	idx = export_index(pkg, idx);
 	if (idx == -1) return NULL;
-
 	return pkg->names[pkg->exports[idx].object_name].name;
 }
 
@@ -769,7 +766,6 @@ const char *upkg_oclassname(struct upkg *pkg, int idx)
 	if (!pkg) return NULL;
 	idx = export_index(pkg, idx);
 	if (idx == -1) return NULL;
-
 	return pkg->names[pkg->exports[idx].class_name].name;
 }
 
@@ -778,7 +774,6 @@ const char *upkg_opackagename(struct upkg *pkg, int idx)
 	if (!pkg) return NULL;
 	idx = export_index(pkg, idx);
 	if (idx == -1) return NULL;
-
 	return pkg->names[pkg->exports[idx].package_name].name;
 }
 
@@ -787,10 +782,7 @@ const char *upkg_otype(struct upkg *pkg, int idx)
 	if (!pkg) return NULL;
 	idx = export_index(pkg, idx);
 	if (idx == -1) return NULL;
-
-	if (pkg->exports[idx].type_name == -1)
-		return NULL;
-
+	if (pkg->exports[idx].type_name == -1) return NULL;
 	return pkg->names[pkg->exports[idx].type_name].name;
 }
 
@@ -799,7 +791,6 @@ int32_t upkg_export_size(struct upkg *pkg, int idx)
 	if (!pkg) return 0;
 	idx = export_index(pkg, idx);
 	if (idx == -1) return 0;
-
 	return pkg->exports[idx].serial_size;
 }
 
@@ -808,7 +799,6 @@ int32_t upkg_object_size(struct upkg *pkg, int idx)
 	if (!pkg) return 0;
 	idx = export_index(pkg, idx);
 	if (idx == -1) return 0;
-
 	return pkg->exports[idx].object_size;
 }
 
@@ -817,7 +807,6 @@ int32_t upkg_export_offset(struct upkg *pkg, int idx)
 	if (!pkg) return 0;
 	idx = export_index(pkg, idx);
 	if (idx == -1) return 0;
-
 	return pkg->exports[idx].serial_offset;
 }
 
@@ -826,104 +815,80 @@ int32_t upkg_object_offset(struct upkg *pkg, int idx)
 	if (!pkg) return 0;
 	idx = export_index(pkg, idx);
 	if (idx == -1) return 0;
-
 	return pkg->exports[idx].object_offset;
 }
 
 int upkg_read(struct upkg *pkg, void *readbuf, size_t bytes, long offset)
 {
-	if (!pkg || !readbuf)
-		return -1;
-
+	if (!pkg || !readbuf) return -1;
 	fseek(pkg->file, offset, SEEK_SET);
-
 	return fread(readbuf, 1, bytes, pkg->file);
 }
 
 int upkg_export_dump(struct upkg *pkg, const char *filename, int idx)
 {
-	int count, diff;
-	void *buffer;
+	int cnt, diff;
+	char buf[4096];
 	FILE *out;
 
 	if (!pkg) return -1;
 	idx = export_index(pkg, idx);
 	if (idx < 0) return -1;
-
-	buffer = calloc(1, 4096);
-	if (buffer == NULL)
-		return -1;
-
+	cnt = pkg->exports[idx].serial_size;
+	if (cnt < 0) return -1;
 	out = fopen(filename, "wb");
-	if (out == NULL) {
-		free(buffer);
-		return -1;
-	}
+	if (!out) return -1;
 
 	fseek(pkg->file, pkg->exports[idx].serial_offset, SEEK_SET);
 
-	count = pkg->exports[idx].serial_size;
-
 	do {
-		diff =
-		    fread(buffer, 1, ((count > 4096) ? 4096 : count),
-			  pkg->file);
-		if (diff == 0) {
-			count = pkg->exports[idx].serial_size - count;
-			fprintf(stderr, "bad read: wrote %d, expected %d bytes\n",
-				count, pkg->exports[idx].object_size);
-			break;
-		}
-		fwrite(buffer, 1, diff, out);
-		count -= diff;
-	} while (count > 0);
+		diff = fread(buf, 1, ((cnt > 4096)? 4096 : cnt), pkg->file);
+		if (diff == 0) break;
+		(void) fwrite(buf, 1, diff, out);
+		cnt -= diff;
+	} while (cnt > 0);
 
 	fclose(out);
-	free(buffer);
+	if (cnt != 0) {
+		cnt = pkg->exports[idx].serial_size - cnt;
+		fprintf(stderr, "bad read: wrote %d, expected %d bytes\n",
+			cnt, pkg->exports[idx].serial_size);
+		return -1;
+	}
 
 	return 0;
 }
 
 int upkg_object_dump(struct upkg *pkg, const char *filename, int idx)
 {
-	int count, diff;
-	void *buffer;
+	int cnt, diff;
+	char buf[4096];
 	FILE *out;
 
 	if (!pkg) return -1;
 	idx = export_index(pkg, idx);
 	if (idx < 0) return -1;
-
-	buffer = calloc(1, 4096);
-	if (buffer == NULL)
-		return -1;
-
+	cnt = pkg->exports[idx].object_size;
+	if (cnt < 0) return -1;
 	out = fopen(filename, "wb");
-	if (out == NULL) {
-		free(buffer);
-		return -1;
-	}
+	if (!out) return -1;
 
 	fseek(pkg->file, pkg->exports[idx].object_offset, SEEK_SET);
 
-	count = pkg->exports[idx].object_size;
-
 	do {
-		diff =
-		    fread(buffer, 1, ((count > 4096) ? 4096 : count),
-			  pkg->file);
-		if (diff == 0) {
-			count = pkg->exports[idx].object_size - count;
-			fprintf(stderr, "bad read: wrote %d, expected %d bytes\n",
-				count, pkg->exports[idx].object_size);
-			break;
-		}
-		fwrite(buffer, 1, diff, out);
-		count -= diff;
-	} while (count > 0);
+		diff = fread(buf, 1, ((cnt > 4096)? 4096 : cnt), pkg->file);
+		if (diff == 0) break;
+		(void) fwrite(buf, 1, diff, out);
+		cnt -= diff;
+	} while (cnt > 0);
 
 	fclose(out);
-	free(buffer);
+	if (cnt != 0) {
+		cnt = pkg->exports[idx].object_size - cnt;
+		fprintf(stderr, "bad read: wrote %d, expected %d bytes\n",
+			cnt, pkg->exports[idx].object_size);
+		return -1;
+	}
 
 	return 0;
 }
