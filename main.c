@@ -9,6 +9,7 @@ int main(int argc, char *argv[])
 	char filename[128];
 	const char *n, *t;
 	struct upkg *pkg;
+	int32_t ofs0, ofs1;
 	long l;
 
 	if (argc < 2) {
@@ -37,9 +38,11 @@ int main(int argc, char *argv[])
 					strcat(filename, ".");
 					strcat(filename, t);
 
+					ofs0 = upkg_export_offset(pkg, i);
+					ofs1 = upkg_object_offset(pkg, i);
 					n = upkg_oclassname(pkg, i);
-					printf("%s\t(%s, %ld bytes)\n",
-						filename, n, l);
+					printf("%s\t(%s, %ld bytes, export @ 0x%x, object @ 0x%x)\n",
+						filename, n, l, ofs0, ofs1);
 
 					upkg_object_dump(pkg, filename, i);
 				}
