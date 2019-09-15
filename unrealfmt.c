@@ -37,8 +37,12 @@ static void print_flags(uint32_t flags)
 	printf(" Intrinsic");
 }
 
-static void print_pkg_hdr(struct upkg *pkg)
+static void print_pkg_hdr(const struct upkg *pkg)
 {
+    if (!pkg->verbose) return;
+
+    printf("Package header:\n");
+
     printf("tag             = 0x%08x\n"
 	   "file_version    = %d\n",
 	   pkg->hdr->tag,
@@ -85,10 +89,18 @@ static void print_pkg_hdr(struct upkg *pkg)
     }
 }
 
-static void print_name(struct upkg *pkg, int i)
+static void print_names(const struct upkg *pkg)
 {
-    printf("%d: %s\t", i, pkg->names[i].name);
-    print_flags(pkg->names[i].flags);
+    int i;
+
+    if (!pkg->verbose) return;
+    printf("Name table:\n");
+    for (i = 0; i < pkg->hdr->name_count; i++) {
+	printf("%d: %s\t", i, pkg->names[i].name);
+	print_flags(pkg->names[i].flags);
+	printf("\n");
+    }
+    printf("\n");
 }
 
 static void indent(int level)
@@ -102,6 +114,8 @@ static void indent(int level)
 static void print_export(struct upkg *pkg, int idx)
 {
     int level, tmp;
+
+    if (!pkg->verbose) return;
 
     level = pkg->indent_level++;
 
@@ -157,7 +171,11 @@ static void print_export(struct upkg *pkg, int idx)
 
 static void print_import(struct upkg *pkg, int idx)
 {
-    int level = pkg->indent_level++;
+    int level;
+
+    if (!pkg->verbose) return;
+
+    level = pkg->indent_level++;
 
     indent(level - 1);
     printf("IMPORT #%d\n", idx);
@@ -401,7 +419,6 @@ static int load_upkg(struct upkg *pkg)
 		pkg->hdr->heritage_offset = 0;
 	}
 
-	printf("Package header:\n");
 	print_pkg_hdr(pkg);
 
 	for (i = 0; export_desc[i].version; i++) {
@@ -441,7 +458,6 @@ static void get_names(struct upkg *pkg)
 	nofs = pkg->hdr->name_offset;
 	idx = 0;
 
-	printf("Name table:\n");
 	for (i = 0; i < pkg->hdr->name_count; i++) {
 		nofs += idx;
 		idx = 0;
@@ -457,15 +473,13 @@ static void get_names(struct upkg *pkg)
 		}
 
 		pkg->names[i].flags = get_u32(&readbuf[idx], &idx);
-
-		print_name(pkg, i);
-		printf("\n");
 	}
 
 /* hdr->name_count + 1 names total, this one's last */
 	strncpy(pkg->names[i].name, "(NULL)", UPKG_MAX_NAME_SIZE);
 	pkg->names[i].flags = 0;
-	printf("\n");
+
+	print_names(pkg);
 }
 
 /* load the export table (which is at the end of the file) */
@@ -474,7 +488,7 @@ static void get_exports_cpnames(struct upkg *pkg, int idx) {
 
     if (idx < 0 || idx >= pkg->hdr->export_count)
 	return;
-    printf("%d\n", idx);
+    if (pkg->verbose) printf("%d\n", idx);
 
     pkg->indent_level = 0;
 
@@ -692,13 +706,13 @@ static void get_types(struct upkg *pkg)
 			pkg->exports[i].type_name = -1;
 		}
 	}
-	printf("\n");
+	if (pkg->verbose) printf("\n");
 }
 
 
 /* PUBLIC API */
 
-struct upkg *upkg_open(const char *filename)
+struct upkg *upkg_open(const char *filename, int verbose)
 {
 	struct upkg *pkg;
 	FILE *file;
@@ -720,6 +734,7 @@ struct upkg *upkg_open(const char *filename)
 	if (fread(pkg->hdr, 1, UPKG_HDR_SIZE, file) < UPKG_HDR_SIZE)
 		goto err;
 
+	pkg->verbose = verbose;
 	if (load_upkg(pkg) != 0)
 		goto err;
 

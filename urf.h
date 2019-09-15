@@ -116,7 +116,7 @@ struct upkg {
 	struct upkg_export *exports;
 	struct upkg_import *imports;
 	struct upkg_name *names;
-	int indent_level;
+	int indent_level, verbose;
 };
 
 #endif	/* _URF_H */

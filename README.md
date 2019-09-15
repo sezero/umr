@@ -21,6 +21,8 @@ Changes since original UMR v0.3:
 - Support for music/sound extraction from unreal 1997/98 beta version,
   i.e. uax/umx package versions 35, 37, 40 and 41.
 - Several code cleanups.
+- Verbose information is output only when umr run with -v as its first
+  argument.
 
 Supported UMX files:
 --------------------

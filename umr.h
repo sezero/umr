@@ -9,7 +9,7 @@ extern "C" {
 
 struct upkg;
 
-struct upkg *upkg_open (const char *);	/* open a upkg format file. */
+struct upkg *upkg_open (const char *, int);	/* open a upkg format file. */
 void upkg_close (struct upkg *);	/* close a upkg format file, previously opened. */
 
 int32_t upkg_ocount (struct upkg *);		/* returns the number of exports */
