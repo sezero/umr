@@ -37,9 +37,9 @@ static void print_flags(uint32_t flags)
 	printf(" Intrinsic");
 }
 
-static void print_pkg_hdr(const struct upkg *pkg)
+static void print_pkg_hdr(const struct upkg *pkg, int verbose)
 {
-    if (!pkg->verbose) return;
+    if (!verbose) return;
 
     printf("Package header:\n");
 
@@ -389,13 +389,16 @@ static int load_upkg(struct upkg *pkg)
 
 	if (pkg->hdr->tag != UPKG_HDR_TAG)
 		return -1;
-	if (pkg->hdr->name_count	< 0 ||
-	    pkg->hdr->name_offset	< 0 ||
-	    pkg->hdr->export_count	< 0 ||
-	    pkg->hdr->export_offset	< 0 ||
-	    pkg->hdr->import_count	< 0 ||
-	    pkg->hdr->import_offset	< 0)
+	if (pkg->hdr->name_count	< 0  ||
+	    pkg->hdr->export_count	< 0  ||
+	    pkg->hdr->import_count	< 0  ||
+	    pkg->hdr->name_offset	< 36 ||
+	    pkg->hdr->export_offset	< 36 ||
+	    pkg->hdr->import_offset	< 36) {
+		printf("Illegal values in header:\n");
+		print_pkg_hdr(pkg, 1);
 		return -1;
+	}
 
 	if (pkg->hdr->file_version >= 68) {
 		/* move data to correct members */
@@ -419,7 +422,7 @@ static int load_upkg(struct upkg *pkg)
 		pkg->hdr->heritage_offset = 0;
 	}
 
-	print_pkg_hdr(pkg);
+	print_pkg_hdr(pkg, pkg->verbose);
 
 	for (i = 0; export_desc[i].version; i++) {
 		if (pkg->hdr->file_version == export_desc[i].version) {
