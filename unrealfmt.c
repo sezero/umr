@@ -7,6 +7,18 @@
 #include "unrealfmtdata.h"
 
 
+static int bad_read(const char *fn)
+{
+    fprintf(stderr, "READ FAILURE in %s()\n", fn);
+    return -1;
+}
+
+static int bad_seek(const char *fn)
+{
+    fprintf(stderr, "SEEK FAILURE in %s()\n", fn);
+    return -1;
+}
+
 static void print_flags(uint32_t flags)
 {
     if (flags & RF_Transactional)
@@ -452,7 +464,7 @@ static int load_upkg(struct upkg *pkg)
 }
 
 /* load the name table */
-static void get_names(struct upkg *pkg)
+static int get_names(struct upkg *pkg)
 {
 	int i, idx, c;
 	long nofs;
@@ -465,8 +477,12 @@ static void get_names(struct upkg *pkg)
 		nofs += idx;
 		idx = 0;
 		memset(readbuf, 0, 80);
-		fseek(pkg->file, nofs, SEEK_SET);
-		fread(readbuf, 1, 80, pkg->file);
+		if (fseek(pkg->file, nofs, SEEK_SET) < 0) {
+			return bad_seek("get_names");
+		}
+		if (!fread(readbuf, 1, 80, pkg->file)) {
+			return bad_read("get_names");
+		}
 
 		if (pkg->hdr->file_version >= 64) {
 			c = get_s8(&readbuf[idx], &idx);
@@ -483,6 +499,7 @@ static void get_names(struct upkg *pkg)
 	pkg->names[i].flags = 0;
 
 	print_names(pkg);
+	return 0;
 }
 
 /* load the export table (which is at the end of the file) */
@@ -504,7 +521,7 @@ static void get_exports_cpnames(struct upkg *pkg, int idx) {
     set_pkgname(pkg, idx, x);
 }
 
-static void get_exports(struct upkg *pkg)
+static int get_exports(struct upkg *pkg)
 {
 	int i, idx;
 	long eofs;
@@ -517,8 +534,12 @@ static void get_exports(struct upkg *pkg)
 		eofs += idx;
 		idx = 0;
 		memset(readbuf, 0, 40);
-		fseek(pkg->file, eofs, SEEK_SET);
-		fread(readbuf, 1, 40, pkg->file);
+		if (fseek(pkg->file, eofs, SEEK_SET) < 0) {
+			return bad_seek("get_exports");
+		}
+		if (!fread(readbuf, 1, 40, pkg->file)) {
+			return bad_read("get_exports");
+		}
 
 		pkg->exports[i].class_index = get_fci(&readbuf[idx], &idx);
 		pkg->exports[i].super_index = get_fci(&readbuf[idx], &idx);
@@ -538,10 +559,11 @@ static void get_exports(struct upkg *pkg)
 
 		get_exports_cpnames(pkg, i); /* go grab the class & package names */
 	}
+	return 0;
 }
 
 /* load the import table.  same story as get_exports() */
-static void get_imports(struct upkg *pkg)
+static int get_imports(struct upkg *pkg)
 {
 	int i, idx;
 	long iofs;
@@ -554,8 +576,12 @@ static void get_imports(struct upkg *pkg)
 		iofs += idx;
 		idx = 0;
 		memset(readbuf, 0, 40);
-		fseek(pkg->file, iofs, SEEK_SET);
-		fread(readbuf, 1, 40, pkg->file);
+		if (fseek(pkg->file, iofs, SEEK_SET) < 0) {
+			return bad_seek("get_imports");
+		}
+		if (!fread(readbuf, 1, 40, pkg->file)) {
+			return bad_read("get_imports");
+		}
 
 		pkg->imports[i].class_package = get_fci(&readbuf[idx], &idx);
 		pkg->imports[i].class_name = get_fci(&readbuf[idx], &idx);
@@ -567,6 +593,7 @@ static void get_imports(struct upkg *pkg)
 		}
 		pkg->imports[i].object_name = get_fci(&readbuf[idx], &idx);
 	}
+	return 0;
 }
 
 /* load the type_names */
@@ -642,8 +669,17 @@ static void check_type(struct upkg *pkg, int e, int d)
 	long i, s, l;
 	char readbuf[96], c;
 
-	fseek(pkg->file, pkg->exports[e].object_offset, SEEK_SET);
-	fread(readbuf, 96, 1, pkg->file);
+	memset(readbuf, 0, 96);
+	if (fseek(pkg->file, pkg->exports[e].object_offset, SEEK_SET) < 0) {
+		bad_seek("check_type");
+		pkg->exports[e].type_name = -1;
+		return;
+	}
+	if (!fread(readbuf, 96, 1, pkg->file)) {
+		bad_read("check_type");
+		pkg->exports[e].type_name = -1;
+		return;
+	}
 
 	i = pkg->exports[e].type_name;
 	if (i < 0 || i >= pkg->hdr->name_count) {
@@ -692,8 +728,15 @@ static void get_types(struct upkg *pkg)
 		_retry:
 		j = get_types_isgood(pkg, i, next);
 		if (j != -1) {
-			fseek(pkg->file, pkg->exports[i].serial_offset, SEEK_SET);
-			fread(readbuf, 4, UPKG_MAX_ORDERS, pkg->file);
+			memset(readbuf, 0, sizeof(readbuf));
+			if (fseek(pkg->file, pkg->exports[i].serial_offset, SEEK_SET) < 0) {
+				bad_seek("get_types");
+				goto bad;
+			}
+			if (!fread(readbuf, 4, UPKG_MAX_ORDERS, pkg->file)) {
+				bad_read("get_types");
+				goto bad;
+			}
 			get_type(pkg, readbuf, i, j);
 			check_type(pkg, i, j);
 
@@ -706,7 +749,7 @@ static void get_types(struct upkg *pkg)
 				goto _retry;
 			}
 		} else {
-			pkg->exports[i].type_name = -1;
+		 bad:	pkg->exports[i].type_name = -1;
 		}
 	}
 	if (pkg->verbose) printf("\n");
@@ -741,9 +784,10 @@ struct upkg *upkg_open(const char *filename, int verbose)
 	if (load_upkg(pkg) != 0)
 		goto err;
 
-	get_names(pkg);		/* this order is important. */
-	get_imports(pkg);
-	get_exports(pkg);
+	/* the order is important here.  */
+	if (get_names(pkg) < 0) goto err;
+	if (get_imports(pkg) < 0) goto err;
+	if (get_exports(pkg) < 0) goto err;
 	get_types(pkg);
 
 	return pkg;
